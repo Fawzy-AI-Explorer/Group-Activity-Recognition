@@ -6,7 +6,7 @@ DATASET_LINK="https://www.kaggle.com/api/v1/datasets/download/ahmedmohamed365/vo
 DEST_DIR="data/volleyball.zip"
 EX_DIR="data/volleyball"
 
-# Check if zip file already exists
+# Check if zip file already exists 
 if [ -f "$DEST_DIR" ]; then
   echo -e "\n:warning:  Dataset already exists at $DEST_DIR"
   read -p "Do you want to re-download it? (y/n): " answer
@@ -28,4 +28,4 @@ unzip -o "$DEST_DIR" -d "$EX_DIR"
 
 echo -e "\n:white_check_mark: Done Unzipping Files"
 
-# zsh scripts/filename.sh
+# zsh scripts/DownloadDataScript.sh
