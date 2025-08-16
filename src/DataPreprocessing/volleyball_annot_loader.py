@@ -84,9 +84,9 @@ class AnnotationLoader:
 
 
             # print(len(frame_boxes_dct[38025]))  # ! 9 Frames each one contain 12 Info (Players)
-            print(
-                len(frame_boxes_dct), len(player_boxes_dct), len(player_boxes_dct[0])
-            )  # 9  12  20
+            # print(
+            #     len(frame_boxes_dct), len(player_boxes_dct), len(player_boxes_dct[0])
+            # )  # 9  12  20
             return (
                 frame_boxes_dct,  # 9 Frames each one contain 12 Info (box_info = Players)
                 player_boxes_dct,  # 12 Players each one has 20 Boxes (Frames)
@@ -201,16 +201,12 @@ class AnnotationLoader:
 
         return videos_annot_dct  # ! Dict {video_dir: {clip_dir: {'category': category, 'frame_boxes_dct': frame_boxes_dct}}}
 
-    def create_pkl(self, volleyball_dataset=None):
+    def create_pkl(self):
         # You can use this function to create and save pkl version of the dataset
         # videos_root = f'{dataset_root}/videos'
         # annot_root = f'{dataset_root}/volleyball_tracking_annotation'
 
-        videos_annot = (
-            self.load_volleyball_dataset(self.videos_root, self.annot_root)
-            if not volleyball_dataset
-            else volleyball_dataset
-        )
+        videos_annot = self.load_volleyball_dataset()
 
         with open(Paths.ANNOT_PKL.value, "wb") as file:
             pickle.dump(videos_annot, file)
@@ -219,9 +215,9 @@ class AnnotationLoader:
         with open(Paths.ANNOT_PKL.value, "rb") as file:
             videos_annot = pickle.load(file)
 
-        boxes: List[BoxInfo] = videos_annot["0"]["13456"]["frame_boxes_dct"][13454]
-        print(boxes[0].category)
-        print(boxes[0].box)
+        # boxes: List[BoxInfo] = videos_annot["0"]["13456"]["frame_boxes_dct"][13454]
+        # print(boxes[0].category)
+        # print(boxes[0].box)
 
         return videos_annot
 
@@ -230,15 +226,34 @@ if __name__ == "__main__":
     # clib_dir = r"4/24745"
     # annot_file = f'{dataset_root}/volleyball_tracking_annotation/volleyball_tracking_annotation/{clib_dir}/{os.path.basename(clib_dir)}.txt'
     # clip_dir_path = f'{dataset_root}/volleyball_/videos/{clib_dir}'
+
     annot_file = (
         r"E:\DATA SCIENCE\projects\dl\Group Activity Recognition\Data\38025.txt"
     )
 
     clip_dir_path = r"E:\DATA SCIENCE\projects\dl\Group Activity Recognition\Data\videos_sample\7\38025"
 
-    loader = AnnotationLoader()
-    loader.vis_clip(annot_file, clip_dir_path)
-    # loader.create_pkl()  # Create pkl file
+    loader = AnnotationLoader(debug=False)
+    # loader.vis_clip(annot_file, clip_dir_path)
+
+    # videos_annot_dct = loader.load_volleyball_dataset()
+
+    # for video_id, clips in videos_annot_dct.items():  # each video
+    #     print(f"\n  Video: {video_id}")
+        
+    #     for clip_id, clip_data in clips.items():  # each clip
+    #         print(f"    Clip: {clip_id} | Category: {clip_data['category']}")
+            
+    #         # Frames
+    #         for frame_id, boxes in clip_data["frame_boxes_dct"].items():
+    #             print(f"      Frame {frame_id} has {len(boxes)} players")
+                
+    #             # Players in the frame
+    #             for box in boxes:
+    #                 print(f"       Player {box.player_id}: {box.box}, {box.category}")
+
+
+    loader.create_pkl()  # Create pkl file
     # videos_annot = loader.load_pkl()  # Load pkl file
     print("END...")
 
