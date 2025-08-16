@@ -8,10 +8,11 @@ import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
-from volleyball_annot_loader import load_tracking_annot
+# from volleyball_annot_loader import load_tracking_annot
+from src.DataPreprocessing.volleyball_annot_loader import AnnotationLoader
+from src.enums.PathEnums import Paths
 
-dataset_root = '/home/moustafa/0hdd/research/sfu/volleyball-datasets'
-
+dataset_root = Paths.DATASET_ROOT.value
 
 def check():
     print('torch: version', torch.__version__)
@@ -33,11 +34,9 @@ def check():
     print(f"Current device: {current_device}")
 
 
-
-
 def prepare_model(image_level = False):
     if image_level:
-        # image has a lot of space around objects. Let's crop around
+        # image (frame) has a lot of space around objects. Let's crop around
         preprocess = transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.CenterCrop((224, 224)),
@@ -71,10 +70,10 @@ def prepare_model(image_level = False):
 
 
 def extract_features(clip_dir_path, annot_file, output_file, model, preprocess, image_level=False):
-    frame_boxes = load_tracking_annot(annot_file)
+    frame_boxes = AnnotationLoader.load_tracking_annot(annot_file) # ! Dict {frame_id: List[BoxInfo]} 9 Frames each one contain 12 Info (Players)
 
     with torch.no_grad():
-        for frame_id, boxes_info in frame_boxes.items():
+        for frame_id, boxes_info in frame_boxes.items(): # ! 9 Frames
             try:
                 img_path = os.path.join(clip_dir_path, f'{frame_id}.jpg')
                 image = Image.open(img_path).convert('RGB')
@@ -86,9 +85,9 @@ def extract_features(clip_dir_path, annot_file, output_file, model, preprocess, 
                 else:
                     # for each image player's box, extract cropped images, extract features
                     preprocessed_images = []
-                    for box_info in boxes_info:
+                    for box_info in boxes_info: # ! 12 Players
                         x1, y1, x2, y2 = box_info.box
-                        cropped_image = image.crop((x1, y1, x2, y2))
+                        cropped_image = image.crop((x1, y1, x2, y2)) # Crop the image to get Player using the box coordinates
 
                         if True:   # visualize a crop
                             cv2.imshow('Cropped Image', np.array(cropped_image))
