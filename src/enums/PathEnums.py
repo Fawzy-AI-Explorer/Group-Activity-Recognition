@@ -2,11 +2,11 @@ from enum import Enum
 
 class Paths(Enum):
 
-    DATASET_ROOT = "Data/volleyball/"
-    VIDEOS_ROOT = f"{DATASET_ROOT}/videos"
-    ANNOT_ROOT = f"{DATASET_ROOT}/volleyball_tracking_annotation"
+    DATASET_ROOT = "data/volleyball"
+    VIDEOS_ROOT = f"{DATASET_ROOT}/volleyball_/videos"
+    ANNOT_ROOT = f"{DATASET_ROOT}/volleyball_tracking_annotation/volleyball_tracking_annotation"
 
-    ANNOT_PKL = f"{DATASET_ROOT}/annot_all.pkl"
+    ANNOT_PKL = f"datapkl/annot_all.pkl"
 
 
 if __name__ == "__main__":
