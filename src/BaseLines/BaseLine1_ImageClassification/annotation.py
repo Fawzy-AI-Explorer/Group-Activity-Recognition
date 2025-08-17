@@ -3,8 +3,8 @@ import os, pickle
 from src.enums.PathEnums import Paths
 
 class Annotation:
-    def __init__(self, pkl_path):
-        self.pkl_path = pkl_path
+    def __init__(self):
+        self.pkl_path = Paths.ANNOT_PKL.value # annot_path
 
     def load_pkl(self):
         with open(self.pkl_path, "rb") as f:
@@ -34,16 +34,29 @@ class Annotation:
         labels = sorted(labels)
         categories_dct = {label: idx for idx, label in enumerate(labels)}
 
+        # categories_dct = {
+        #     'l-pass': 0,
+        #     'r-pass': 1,
+        #     'l-spike': 2,
+        #     'r_spike': 3,
+        #     'l_set': 4,
+        #     'r_set': 5,
+        #     'l_winpoint': 6,
+        #     'r_winpoint': 7
+        # }
+        # labels = list(categories_dct.keys())
+
         return data_annot, labels, categories_dct
 
 
 
 if __name__ == "__main__":
-    pkl_path = Paths.ANNOT_PKL.value # annot_path
-    loader = Annotation(pkl_path)
+    print("annotation...")
+    
+    loader = Annotation()
     data_annot, labels, categories_dct = loader.build_annotations()
 
-    print(f"{len(labels)} labels: {labels}\n\n")
+    print(f"{len(labels)} labels: {labels}\n\n, {categories_dct}")
 
 
     for frame_dct in data_annot:
@@ -51,3 +64,4 @@ if __name__ == "__main__":
             print(frame_dct["path"], "==>", frame_dct["category"])
             break
         break
+# python -m src.BaseLines.BaseLine1_ImageClassification.annotation
