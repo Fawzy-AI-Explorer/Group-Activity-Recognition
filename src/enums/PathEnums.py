@@ -12,7 +12,7 @@ class Paths(Enum):
 
     # BaseLine 1 Paths
 
-    OUTPUT_ROOT = Path("FramesData")
+    OUTPUT_ROOT = Path("FramesDataB1")
     TRAIN_PATH = OUTPUT_ROOT / "train"
     VALID_PATH = OUTPUT_ROOT / "train"
     TEST_PATH = OUTPUT_ROOT / "train"
