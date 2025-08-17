@@ -24,6 +24,7 @@ class DatasetSplitter:
     def save_split(self, data_split, split_path):
         split_path.mkdir(parents=True, exist_ok=True)
         count = 0
+        count_override = 0
         for item in data_split:
 
             src = Path(item["path"])
@@ -34,12 +35,27 @@ class DatasetSplitter:
             dst = dst_dir / f"vid_{vid_num}_{os.path.basename(src)}"
             
             try:
-                if not dst.exists():
-                    shutil.copy(src, dst)
-                    count += 1
+                if dst.exists():
+                    num = random.randint(1, 10)
+                    dst = dst_dir / f"vid_{vid_num}_{num}_{src.name}"
+                    count_override+=1
+
+                shutil.copy(src, dst)
+                count += 1
+
+            # try:
+            #     if not dst.exists():
+            #         shutil.copy(src, dst)
+            #         count += 1
+            #     else:
+            #         num = random.randint(1, 10)
+            #         dst = dst_dir / f"vid_{num}_{vid_num}_{os.path.basename(src)}"
+            #         shutil.copy(src, dst)
+            #         count += 1
+
             except Exception as e:
                 print(f"Error copying {src} → {dst}: {e}")
-        print(count)
+        print(count, count_override, count_override+count)
 
 
 if __name__ == "__main__":
@@ -55,11 +71,11 @@ if __name__ == "__main__":
     train_data, valid_data, test_data = splitter.split(data_annot)
     # print(int(len(data_annot)*0.6) +  int(len(data_annot)*0.3) + int(len(data_annot)*0.1)) # 43470
 
-    print("Train...")
+    print("Train...") # 25973
     splitter.save_split(train_data, Paths.TRAIN_PATH.value)
-    print("Valid...")
+    print("Valid...") # 12861
     splitter.save_split(valid_data, Paths.VALID_PATH.value)
-    print("Test...")
+    print("Test...") # 4300
     splitter.save_split(test_data, Paths.TEST_PATH.value)
 
 
