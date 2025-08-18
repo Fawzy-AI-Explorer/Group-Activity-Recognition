@@ -109,6 +109,13 @@ if __name__ == "__main__":
         transforms.ToTensor()
     ])
 
+    # transforms.Compose([
+    #         transforms.Resize((256, 256)),
+    #         transforms.CenterCrop((224, 224)),
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    #     ])
+
 
     train_data_custom = ImageFolderCustom(dir=Paths.TRAIN_PATH.value,
                                           labels=labels, categories_dct=categories_dct,
