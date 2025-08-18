@@ -10,8 +10,9 @@ class Paths(Enum):
 
     ANNOT_PKL = f"datapkl/annot_all.pkl"
 
+    # =================
     # BaseLine 1 Paths
-
+    # =================
     OUTPUT_ROOT = Path("FramesDataB1")
     TRAIN_PATH = OUTPUT_ROOT / "train"
     VALID_PATH = OUTPUT_ROOT / "valid"
