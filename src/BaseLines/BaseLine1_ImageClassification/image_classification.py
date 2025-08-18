@@ -22,7 +22,7 @@ class ImageFolderCustom(Dataset):
         """
 
         self.paths = self.get_list_of_files(dir)
-        # print(len(self.paths))
+        print(len(self.paths))
         self.transform = transform
         self.classes, self.class_to_idx = labels, categories_dct  # self.get_classes()
         # self.labels = labels
@@ -99,22 +99,20 @@ if __name__ == "__main__":
 
 
     train_transforms = transforms.Compose([
-        transforms.Resize((64, 64)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.ToTensor()
-    ])
+            transforms.Resize((256, 256)),
+            transforms.CenterCrop((224, 224)),
+            # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
 
     test_transforms = transforms.Compose([
-        transforms.Resize((64, 64)),
-        transforms.ToTensor()
-    ])
-
-    # transforms.Compose([
-    #         transforms.Resize((256, 256)),
-    #         transforms.CenterCrop((224, 224)),
-    #         transforms.ToTensor(),
-    #         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    #     ])
+            transforms.Resize((256, 256)),
+            transforms.CenterCrop((224, 224)),
+            # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
 
 
     train_data_custom = ImageFolderCustom(dir=Paths.TRAIN_PATH.value,
@@ -141,19 +139,19 @@ if __name__ == "__main__":
 
 
 
-    train_dataloader_custom = DataLoader(dataset=train_data_custom, # use custom created train Dataset
-                                     batch_size=32, # how many samples per batch?
-                                     num_workers=0, # how many subprocesses to use for data loading? (higher = more)
-                                     shuffle=True) # shuffle the data?
+    # train_dataloader_custom = DataLoader(dataset=train_data_custom, # use custom created train Dataset
+    #                                  batch_size=32, # how many samples per batch?
+    #                                  num_workers=0, # how many subprocesses to use for data loading? (higher = more)
+    #                                  shuffle=True) # shuffle the data?
 
-    test_dataloader_custom = DataLoader(dataset=test_data_custom, # use custom created test Dataset
-                                        batch_size=32, 
-                                        num_workers=0, 
-                                        shuffle=False) # don't usually need to shuffle testing data
+    # test_dataloader_custom = DataLoader(dataset=test_data_custom, # use custom created test Dataset
+    #                                     batch_size=32, 
+    #                                     num_workers=0, 
+    #                                     shuffle=False) # don't usually need to shuffle testing data
 
-    valid_dataloader_custom = DataLoader(dataset=valid_data_custom, # use custom created valid Dataset
-                                         batch_size=32, 
-                                         num_workers=0,
-                                         shuffle=False) # don't usually need to shuffle validation data
+    # valid_dataloader_custom = DataLoader(dataset=valid_data_custom, # use custom created valid Dataset
+    #                                      batch_size=32, 
+    #                                      num_workers=0,
+    #                                      shuffle=False) # don't usually need to shuffle validation data
 
-    print(train_dataloader_custom, test_dataloader_custom, valid_dataloader_custom)
+    # print(train_dataloader_custom, test_dataloader_custom, valid_dataloader_custom)

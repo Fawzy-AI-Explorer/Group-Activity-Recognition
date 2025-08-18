@@ -98,7 +98,8 @@ class DatasetSplitter:
 
         """
         self.output_root = Paths.OUTPUT_ROOT.value
-        self.pkl_path = Paths.ANNOT_PKL.value # annot_path
+        # self.pkl_path = Paths.ANNOT_PKL.value # annot_path
+        self.pkl_path = os.path.join('../../', Paths.ANNOT_PKL.value)
 
     def load_pkl(self) -> dict:
         """
