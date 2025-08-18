@@ -11,7 +11,7 @@ from PIL import Image
 
 
 class ImageFolderCustom(Dataset):
-    def __init__(self, dir, labels, categories_dct, transform=None) -> None:
+    def __init__(self, dir, labels, categories_dct, transform=None):
         """
         Initialize the dataset.
         Args:
@@ -22,7 +22,7 @@ class ImageFolderCustom(Dataset):
         """
 
         self.paths = self.get_list_of_files(dir)
-        print(len(self.paths))
+        # print(len(self.paths))
         self.transform = transform
         self.classes, self.class_to_idx = labels, categories_dct  # self.get_classes()
         # self.labels = labels
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     annot_loader.save_split(valid_data, Paths.VALID_PATH.value)
     print("Test...") # 4300
     annot_loader.save_split(test_data, Paths.TEST_PATH.value)
-
+    # ====================================================================
 
 
     train_transforms = transforms.Compose([
@@ -133,11 +133,12 @@ if __name__ == "__main__":
                                          )
 
     print(len(train_data_custom), len(valid_data_custom), len(test_data_custom))
+    # (26082, 13041, 4347)
 
     print(valid_data_custom.class_to_idx)
     print(valid_data_custom.classes)
 
-
+# python -m src.BaseLines.BaseLine1_ImageClassification.image_classification
 
     # train_dataloader_custom = DataLoader(dataset=train_data_custom, # use custom created train Dataset
     #                                  batch_size=32, # how many samples per batch?
