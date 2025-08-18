@@ -171,8 +171,8 @@ class DatasetSplitter:
         n_total = len(data_annot)
         n_train = int(train_ratio * n_total)
         n_valid = int(valid_ratio * n_total)
-        # print(n_total, n_train, n_valid, n_total-n_train-n_valid)
-        # 26082 || 13041 || 4347
+        # print("split", n_total, n_train, n_valid, n_total-n_train-n_valid)
+        # 4370 || 26082 || 13041 || 4347
         return (
             data_annot[:n_train],
             data_annot[n_train:n_train+n_valid],
@@ -216,7 +216,7 @@ class DatasetSplitter:
 
             except Exception as e:
                 print(f"Error copying {src} → {dst}: {e}")
-        print(count, count_override, count_override+count)
+        print("save split", count, count_override)
 
 
 if __name__ == "__main__":
@@ -244,12 +244,3 @@ if __name__ == "__main__":
 
 
 # python -m src.BaseLines.BaseLine1_ImageClassification.dataset_splitter
-
-
-
-
-
-
-
-
-# # python -m src.BaseLines.BaseLine1_ImageClassification.dataset_splitter
