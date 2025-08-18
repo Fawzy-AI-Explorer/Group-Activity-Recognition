@@ -14,8 +14,8 @@ class Paths(Enum):
 
     OUTPUT_ROOT = Path("FramesDataB1")
     TRAIN_PATH = OUTPUT_ROOT / "train"
-    VALID_PATH = OUTPUT_ROOT / "train"
-    TEST_PATH = OUTPUT_ROOT / "train"
+    VALID_PATH = OUTPUT_ROOT / "valid"
+    TEST_PATH = OUTPUT_ROOT / "test"
 
 
 
