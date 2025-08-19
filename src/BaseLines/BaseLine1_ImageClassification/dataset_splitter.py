@@ -46,7 +46,7 @@ class DatasetSplitter:
         valid_split = all_data[n_train:n_train+n_valid]
         test_split = all_data[n_train+n_valid:]
 
-        return all_data_cpy, train_split, valid_split, test_split, labels
+        return all_data_cpy, train_split, valid_split, test_split, sorted(list(labels))
 
 # splitter = DatasetSplitter()
 # train_split, valid_split, test_split, labels = splitter.split_dataset()
