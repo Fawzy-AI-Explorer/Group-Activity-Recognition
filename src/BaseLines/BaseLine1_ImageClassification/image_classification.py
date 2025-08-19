@@ -1,0 +1,347 @@
+from src.BaseLines.BaseLine1_ImageClassification.dataset_splitter import DatasetSplitter
+from src.BaseLines.BaseLine1_ImageClassification.custom_dataset import CustomDataset
+from src.enums.PathEnums import Paths
+from src.enums.ModelEnums import ModelConfig
+
+from timeit import default_timer as timer
+from tqdm import tqdm
+from pathlib import Path
+import pandas as pd
+from PIL import Image
+import os
+import json
+import yaml
+
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torchvision import transforms
+from torchmetrics.classification import Accuracy
+from torch.utils.data import Dataset, DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from torchvision import models
+from torchinfo  import summary
+
+
+
+class ResNet50Finetuner(nn.Module):
+    def __init__(self, num_classes: int, freeze_backbone: bool = True, lr: float = 1e-3):
+        """
+        Fine-tuned ResNet50 model.
+
+        Args:
+            num_classes (int): number of classes in your dataset.
+            freeze_backbone (bool): if True, freeze feature extractor and only train FC head.
+            lr (float): learning rate for optimizer.
+        """
+        super().__init__()
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.writer = SummaryWriter(log_dir="loggs/runs")
+        
+        # Load pretrained ResNet50
+        self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        print("  Loaded pretrained ResNet50 (ImageNet weights)")
+
+        # Freeze backbone if required
+        if freeze_backbone:
+            for param in self.model.parameters():
+                param.requires_grad = False
+            print("   Backbone frozen (only final FC will train)")
+        else:
+            print("   All layers are trainable")
+
+        # Replace final layer
+        in_features = self.model.fc.in_features
+        self.model.fc = nn.Linear(in_features, num_classes)
+        # for p in self.model.fc.parameters():
+        #     p.requires_grad = True
+        print(f"   Final layer replaced: {in_features} → {num_classes}")
+
+        # Training components
+        self.criterion = nn.CrossEntropyLoss()
+        self.acctorch = Accuracy(task="multiclass", num_classes=num_classes).to(self.device)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
+
+        # self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=3, gamma=0.1)
+
+        self.model.to(self.device)
+
+    def forward(self, x):
+        return self.model(x)
+
+    def explore(self, input_size=(1, 3, 224, 224)):
+        """
+        Print model summary and param counts.
+        """
+        print("\n--- Model Summary ---\n")
+        print(f"DEVICE:{self.device}")
+
+        summary(self.model, input_size=input_size)
+
+        total = sum(p.numel() for p in self.model.parameters())
+        trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print(f"\n   Total parameters: {total:,}")
+        print(f"     Trainable parameters: {trainable:,}")
+
+    def print_train_time(self, start: float, end: float):
+        total_time = end - start
+        print(f"Train time on {self.device}: {total_time:.3f} seconds")
+        return total_time
+
+    def train_step(self,
+               data_loader: torch.utils.data.DataLoader
+                ):
+        
+        self.model.train() # put model in train mode
+        train_loss = 0.0
+
+
+        for batch, (X, y) in enumerate(data_loader):
+            # Send data to GPU
+            X, y = X.to(self.device), y.to(self.device)
+
+            # Forward
+            y_pred = self.model(X)
+            loss = self.criterion(y_pred, y)
+
+             # Backward
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+
+            # Metrics
+            train_loss += loss.item()
+            self.acctorch(y_pred.argmax(dim=1), y)
+    
+        # Calculate loss and accuracy per epoch and print out what's happening
+        avg_loss  = train_loss / len(data_loader)
+        avg_acc = self.acctorch.compute()
+        avg_acc = avg_acc.item()
+        self.acctorch.reset()
+        # print(f"Train loss: {avg_loss:.5f} | Train accuracy: {avg_acc*100}")
+
+        return avg_loss, avg_acc
+
+
+    def test_step(self,
+                data_loader: torch.utils.data.DataLoader
+                ):
+        
+        self.model.eval() 
+        test_loss = 0
+        
+        with torch.inference_mode(): 
+            for X, y in data_loader:
+                X, y = X.to(self.device), y.to(self.device)
+                
+                test_pred = self.model(X)
+                loss = self.criterion(test_pred, y)
+
+
+                test_loss += loss.item()
+                self.acctorch(test_pred.argmax(dim=1), y)
+            
+            avg_loss  = test_loss / len(data_loader)
+            avg_acc = self.acctorch.compute()
+            avg_acc = avg_acc.item()
+            self.acctorch.reset()
+            # print(f"Test loss: {avg_loss:.5f} | Test accuracy: {avg_acc}%\n")
+            return avg_loss, avg_acc
+
+    def train_model(self, train_dataloader, valid_dataloader, epochs=5):
+        """
+        Train the model with optional validation.
+
+        Args:
+            train_loader: DataLoader for training data
+            valid_loader: DataLoader for validation data
+            epochs (int): number of training epochs
+        """
+        history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
+        
+    
+        start_time = timer()
+        best_val_acc = 0
+
+        for epoch in range(1, epochs+1):
+
+            print(f"Epoch: {epoch}/{epochs}\n---------")
+            train_loss, train_acc = self.train_step(train_dataloader)
+            print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
+
+            val_loss, val_acc = self.test_step(valid_dataloader)            
+            print(f"Val   loss: {val_loss:.4f} | Val   acc: {val_acc*100:.2f}%")
+
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                self.save_model("best_resnet50.pth")
+
+            history["train_loss"].append(train_loss)
+            history["train_acc"].append(train_acc)
+            history["val_loss"].append(val_loss)
+            history["val_acc"].append(val_acc)
+
+            self.writer.add_scalar("Loss/train", train_loss, epoch)
+            self.writer.add_scalar("Loss/val", val_loss, epoch)
+            self.writer.add_scalar("Accuracy/train", train_acc, epoch)
+            self.writer.add_scalar("Accuracy/val", val_acc, epoch)
+
+            print(f"Epoch {epoch+1}/{epochs} - "
+                  f"Train loss: {train_loss:.4f}, acc: {train_acc:.4f} | "
+                  f"Val loss: {val_loss:.4f}, acc: {val_acc:.4f}")
+
+        end_time = timer()
+        total_train_time_model = self.print_train_time(start=start_time,
+                                                        end=end_time
+                                                        )
+        os.makedirs("loggs", exist_ok=True)
+        with open("loggs/training_history.json", "w") as f:
+            json.dump(history, f, indent=4)
+        print("Training history saved to loggs/training_history.json")
+
+        pd.DataFrame(history).to_csv("loggs/training_history.csv", index=False)
+        print("Training history saved to loggs/training_history.csv")
+        return history
+
+    def predict(self, x: torch.Tensor):
+        """Predict class for a single input tensor"""
+        self.model.eval()
+        with torch.inference_mode():
+            x = x.unsqueeze(0).to(self.device)
+            y_pred = self.model(x)
+            return int(y_pred.argmax(dim=1).item())
+
+    def save_model(self, path="resnet50.pth"):
+        torch.save(self.model.state_dict(), path)
+        print(f"Model saved to {path}")
+    def load_model(self, path="resnet50.pth"):
+        self.model.load_state_dict(torch.load(path, map_location=self.device))
+        self.model.to(self.device)
+        print(f"Model loaded from {path}")
+
+    def save_checkpoint(self, save_path, epoch, best_val_acc):
+        checkpoint = {
+            "epoch": epoch,
+            "model_state": self.model.state_dict(),
+            "optimizer_state": self.optimizer.state_dict(),
+            "best_val_acc": best_val_acc
+        }
+        torch.save(checkpoint, save_path)
+        print(f"Checkpoint saved at {save_path}")
+
+    def load_checkpoint(self, load_path):
+        checkpoint = torch.load(load_path, map_location=self.device)
+        self.model.load_state_dict(checkpoint["model_state"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state"])
+        start_epoch = checkpoint["epoch"] + 1
+        best_val_acc = checkpoint["best_val_acc"]
+        print(f"Checkpoint loaded from {load_path}, resuming at epoch {start_epoch}")
+        return start_epoch, best_val_acc
+
+
+
+def split_data():
+    print("Strart DatasetSplitter...\n")
+
+    splitter = DatasetSplitter()
+    all_data, train_split, valid_split, test_split, labels = splitter.split_dataset()
+    
+    print("labels: ", labels, "\n")
+    print(f"len data: {len(all_data)} || train: {len(train_split)} || valid: {len(valid_split)} || test: {len(test_split)}")
+    print("==="*50, "\n")
+
+    return train_split, valid_split, test_split, labels
+
+def custom_data(train_split, valid_split, test_split, labels):
+    print("Start CustomDataset...\n")
+    train_transforms = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.CenterCrop((224, 224)),
+            # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+
+    test_transforms = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.CenterCrop((224, 224)),
+            # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+
+    train_dataset = CustomDataset(train_split, labels, transform=train_transforms)
+    valid_dataset = CustomDataset(valid_split, labels, transform=test_transforms)
+    test_dataset  = CustomDataset(test_split,  labels, transform=test_transforms)
+
+    print(f"len train : {len(train_dataset)}")
+    print(f"len valid : {len(valid_dataset)}")
+    print(f"len test : {len(test_dataset)}")  
+    #   # (26082, 13041, 4347)
+
+    print(valid_dataset.labels)
+    print(valid_dataset.class_to_idx)
+    print("="*50, "\n")
+    return train_dataset, valid_dataset, test_dataset
+
+def data_loaders(train_dataset, valid_dataset, test_dataset):
+    
+    print("Strat DataLoader...\n")
+    BATCH_SIZE = ModelConfig.BATCH_SIZE.value
+    epochs = ModelConfig.EPOCHS
+    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+    valid_dataloader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+    test_dataloader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+
+    print(f"Length of train dataloader: {len(train_dataloader)} batches of {train_dataloader.batch_size}") #=> 816 || 32
+    print(f"Length of test dataloader: {len(test_dataloader)} batches of {test_dataloader.batch_size}")   #=> 136 || 32
+    print(f"Length of valid dataloader: {len(valid_dataloader)} batches of {valid_dataloader.batch_size}") #=> 408 || 32
+
+    train_features_batch, train_labels_batch = next(iter(train_dataloader))
+    print(train_features_batch.shape, train_labels_batch.shape)
+
+    return train_dataloader, valid_dataloader, test_dataloader
+
+def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader):
+    model = ResNet50Finetuner(num_classes=num_classes,
+                             freeze_backbone = True, 
+                             lr = ModelConfig.LR.value
+                             )
+    model.explore()
+
+    history = model.train_model(
+        train_dataloader=train_dataloader,
+        valid_dataloader=valid_dataloader,
+        epochs=2 # ModelConfig.EPOCHS.value
+    )
+
+    model.save_model("loggs/final_resnet50.pth")
+
+    test_loss, test_acc = model.test_step(test_dataloader)
+    print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")
+
+    return model, history
+
+
+def main():
+    train_split, valid_split, test_split, labels = split_data()
+    train_dataset, valid_dataset, test_dataset = custom_data(train_split, valid_split, test_split, labels)
+    train_dataloader, valid_dataloader, test_dataloader = data_loaders(train_dataset, valid_dataset, test_dataset)
+    
+    class_names = train_dataset.labels
+    class_to_idx = train_dataset.class_to_idx
+    num_classes = len(class_names)
+
+    train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader)
+
+    
+
+
+
+if __name__ == "__main__":
+    main()
+
+
+# python -m src.BaseLines.BaseLine1_ImageClassification.image_classification
