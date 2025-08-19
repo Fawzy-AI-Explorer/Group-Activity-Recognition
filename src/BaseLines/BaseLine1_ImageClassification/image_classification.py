@@ -36,8 +36,8 @@ class CustomDataset(Dataset):
         return img, label
 
 
-
-if __name__ == "__main__":
+def main():
+    
     splitter = DatasetSplitter()
     all_data, train_split, valid_split, test_split, labels = splitter.split_dataset()
     print("labels: ", labels, "\n")
@@ -128,6 +128,9 @@ if __name__ == "__main__":
 
     train_features_batch, train_labels_batch = next(iter(train_dataloader))
     print(train_features_batch.shape, train_labels_batch.shape)
+
+if __name__ == "__main__":
+    main()
 
 
 # python -m src.BaseLines.BaseLine1_ImageClassification.image_classification
