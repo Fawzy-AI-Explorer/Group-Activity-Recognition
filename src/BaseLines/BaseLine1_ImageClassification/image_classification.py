@@ -36,9 +36,9 @@ class ResNet50Finetuner(nn.Module):
             lr (float): learning rate for optimizer.
         """
         super().__init__()
-        os.makedirs("loggs", exist_ok=True)
-        os.makedirs("loggs/checkpoints", exist_ok=True)
-        os.makedirs("loggs/metrics", exist_ok=True)
+        os.makedirs(ModelConfig.LOG_DIR.value, exist_ok=True)
+        os.makedirs(ModelConfig.LOG_CHECKPOINTS_DIR.value, exist_ok=True)
+        os.makedirs(ModelConfig.LOG_METRICSS_DIR.value, exist_ok=True)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.writer = SummaryWriter(log_dir="loggs/runs")
@@ -117,7 +117,9 @@ class ResNet50Finetuner(nn.Module):
             # Metrics
             train_loss += loss.item()
             self.acctorch(y_pred.argmax(dim=1), y)
-            break
+            # break
+
+        
     
         # Calculate loss and accuracy per epoch and print out what's happening
         avg_loss  = train_loss / len(data_loader)
@@ -187,12 +189,12 @@ class ResNet50Finetuner(nn.Module):
             val_loss, val_acc, cm, f1, report = self.test_step(valid_dataloader)            
             print(f"Val   loss: {val_loss:.4f} | Val   acc: {val_acc*100:.2f}%")
 
-            pd.DataFrame(cm).to_csv(f"loggs/metrics/confusion_matrix_epoch{epoch}.csv", index=False)
+            pd.DataFrame(cm).to_csv(f"{ModelConfig.LOG_CF_MATRIX.value}{epoch}.csv", index=False)
 
-            with open(f"loggs/metrics/classification_report_epoch{epoch}.json", "w") as f:
+            with open(f"{ModelConfig.LOG_CLS_REPORT.value}{epoch}.json", "w") as f:
                 json.dump(report, f, indent=4)
             
-            with open(f"loggs/metrics/f1_scores.txt", "a") as f:
+            with open(ModelConfig.LOG_F1.value, "a") as f:
                 f.write(f"Epoch {epoch}: {f1:.4f}\n")
 
             if val_acc > best_val_acc:
@@ -335,7 +337,7 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
     history = model.train_model(
         train_dataloader=train_dataloader,
         valid_dataloader=valid_dataloader,
-        epochs=1#ModelConfig.EPOCHS.value
+        epochs=ModelConfig.EPOCHS.value
     )
 
     model.save_model("loggs/final_resnet50.pth")
