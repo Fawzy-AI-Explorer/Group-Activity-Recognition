@@ -22,7 +22,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import models
 from torchinfo  import summary
-
+from sklearn.metrics import confusion_matrix, classification_report, f1_score
 
 
 class ResNet50Finetuner(nn.Module):
@@ -38,6 +38,7 @@ class ResNet50Finetuner(nn.Module):
         super().__init__()
         os.makedirs("loggs", exist_ok=True)
         os.makedirs("loggs/checkpoints", exist_ok=True)
+        os.makedirs("loggs/metrics", exist_ok=True)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.writer = SummaryWriter(log_dir="loggs/runs")
@@ -135,7 +136,8 @@ class ResNet50Finetuner(nn.Module):
         self.model.eval() 
         test_loss = 0
         
-        with torch.inference_mode(): 
+        with torch.inference_mode():
+            y_true, y_pred = [], []
             for X, y in data_loader:
                 X, y = X.to(self.device), y.to(self.device)
                 
@@ -145,14 +147,21 @@ class ResNet50Finetuner(nn.Module):
 
                 test_loss += loss.item()
                 self.acctorch(test_pred.argmax(dim=1), y)
-                break
+
+                y_true.extend(y.cpu().numpy())
+                y_pred.extend(test_pred.argmax(dim=1).cpu().numpy())
+                # break
             
+            cm = confusion_matrix(y_true, y_pred)
+            f1 = f1_score(y_true, y_pred, average="weighted")
+            report = classification_report(y_true, y_pred, output_dict=True)
+            # print(cm, f1)
             avg_loss  = test_loss / len(data_loader)
             avg_acc = self.acctorch.compute()
             avg_acc = avg_acc.item()
             self.acctorch.reset()
             # print(f"Test loss: {avg_loss:.5f} | Test accuracy: {avg_acc}%\n")
-            return avg_loss, avg_acc
+            return avg_loss, avg_acc, cm, f1, report
 
     def train_model(self, train_dataloader, valid_dataloader, epochs=5):
         """
@@ -175,8 +184,16 @@ class ResNet50Finetuner(nn.Module):
             train_loss, train_acc = self.train_step(train_dataloader)
             print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
 
-            val_loss, val_acc = self.test_step(valid_dataloader)            
+            val_loss, val_acc, cm, f1, report = self.test_step(valid_dataloader)            
             print(f"Val   loss: {val_loss:.4f} | Val   acc: {val_acc*100:.2f}%")
+
+            pd.DataFrame(cm).to_csv(f"loggs/metrics/confusion_matrix_epoch{epoch}.csv", index=False)
+
+            with open(f"loggs/metrics/classification_report_epoch{epoch}.json", "w") as f:
+                json.dump(report, f, indent=4)
+            
+            with open(f"loggs/metrics/f1_scores.txt", "a") as f:
+                f.write(f"Epoch {epoch}: {f1:.4f}\n")
 
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
@@ -252,8 +269,8 @@ def split_data():
     splitter = DatasetSplitter()
     all_data, train_split, valid_split, test_split, labels = splitter.split_dataset()
     
-    print("labels: ", labels, "\n")
-    print(f"len data: {len(all_data)} || train: {len(train_split)} || valid: {len(valid_split)} || test: {len(test_split)}")
+    # print("labels: ", labels, "\n")
+    # print(f"len data: {len(all_data)} || train: {len(train_split)} || valid: {len(valid_split)} || test: {len(test_split)}")
     print("==="*50, "\n")
 
     return train_split, valid_split, test_split, labels
@@ -280,13 +297,13 @@ def custom_data(train_split, valid_split, test_split, labels):
     valid_dataset = CustomDataset(valid_split, labels, transform=test_transforms)
     test_dataset  = CustomDataset(test_split,  labels, transform=test_transforms)
 
-    print(f"len train : {len(train_dataset)}")
-    print(f"len valid : {len(valid_dataset)}")
-    print(f"len test : {len(test_dataset)}")  
-    #   # (26082, 13041, 4347)
+    # print(f"len train : {len(train_dataset)}")
+    # print(f"len valid : {len(valid_dataset)}")
+    # print(f"len test : {len(test_dataset)}")  
+    # #   # (26082, 13041, 4347)
 
-    print(valid_dataset.labels)
-    print(valid_dataset.class_to_idx)
+    # print(valid_dataset.labels)
+    # print(valid_dataset.class_to_idx)
     print("="*50, "\n")
     return train_dataset, valid_dataset, test_dataset
 
@@ -299,12 +316,12 @@ def data_loaders(train_dataset, valid_dataset, test_dataset):
     valid_dataloader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
     test_dataloader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
-    print(f"Length of train dataloader: {len(train_dataloader)} batches of {train_dataloader.batch_size}") #=> 816 || 32
-    print(f"Length of test dataloader: {len(test_dataloader)} batches of {test_dataloader.batch_size}")   #=> 136 || 32
-    print(f"Length of valid dataloader: {len(valid_dataloader)} batches of {valid_dataloader.batch_size}") #=> 408 || 32
+    # print(f"Length of train dataloader: {len(train_dataloader)} batches of {train_dataloader.batch_size}") #=> 816 || 32
+    # print(f"Length of test dataloader: {len(test_dataloader)} batches of {test_dataloader.batch_size}")   #=> 136 || 32
+    # print(f"Length of valid dataloader: {len(valid_dataloader)} batches of {valid_dataloader.batch_size}") #=> 408 || 32
 
-    train_features_batch, train_labels_batch = next(iter(train_dataloader))
-    print(train_features_batch.shape, train_labels_batch.shape)
+    # train_features_batch, train_labels_batch = next(iter(train_dataloader))
+    # print(train_features_batch.shape, train_labels_batch.shape)
 
     return train_dataloader, valid_dataloader, test_dataloader
 
@@ -318,12 +335,12 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
     history = model.train_model(
         train_dataloader=train_dataloader,
         valid_dataloader=valid_dataloader,
-        epochs=2 # ModelConfig.EPOCHS.value
+        epochs=1#ModelConfig.EPOCHS.value
     )
 
     model.save_model("loggs/final_resnet50.pth")
 
-    test_loss, test_acc = model.test_step(test_dataloader)
+    test_loss, test_acc, cm, f1, report = model.test_step(test_dataloader)
     print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")
 
     return model, history
