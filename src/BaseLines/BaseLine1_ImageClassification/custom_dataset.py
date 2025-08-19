@@ -133,4 +133,4 @@ if __name__ == "__main__":
     main()
 
 
-# python -m src.BaseLines.BaseLine1_ImageClassification.image_classification
+# python -m src.BaseLines.BaseLine1_ImageClassification.custom_dataset
