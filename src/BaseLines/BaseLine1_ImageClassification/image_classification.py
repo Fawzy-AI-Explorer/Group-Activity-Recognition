@@ -36,6 +36,8 @@ class ResNet50Finetuner(nn.Module):
             lr (float): learning rate for optimizer.
         """
         super().__init__()
+        os.makedirs("loggs", exist_ok=True)
+        os.makedirs("loggs/checkpoints", exist_ok=True)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.writer = SummaryWriter(log_dir="loggs/runs")
@@ -114,6 +116,7 @@ class ResNet50Finetuner(nn.Module):
             # Metrics
             train_loss += loss.item()
             self.acctorch(y_pred.argmax(dim=1), y)
+            break
     
         # Calculate loss and accuracy per epoch and print out what's happening
         avg_loss  = train_loss / len(data_loader)
@@ -142,6 +145,7 @@ class ResNet50Finetuner(nn.Module):
 
                 test_loss += loss.item()
                 self.acctorch(test_pred.argmax(dim=1), y)
+                break
             
             avg_loss  = test_loss / len(data_loader)
             avg_acc = self.acctorch.compute()
@@ -191,17 +195,17 @@ class ResNet50Finetuner(nn.Module):
             print(f"Epoch {epoch+1}/{epochs} - "
                   f"Train loss: {train_loss:.4f}, acc: {train_acc:.4f} | "
                   f"Val loss: {val_loss:.4f}, acc: {val_acc:.4f}")
+            if epoch%5==0:
+                self.save_checkpoint(f"loggs/checkpoints/{epoch}_resnet50", epoch, best_val_acc)
 
         end_time = timer()
-        total_train_time_model = self.print_train_time(start=start_time,
-                                                        end=end_time
-                                                        )
-        os.makedirs("loggs", exist_ok=True)
+        self.print_train_time(start=start_time, end=end_time)
+
         with open("loggs/training_history.json", "w") as f:
             json.dump(history, f, indent=4)
         print("Training history saved to loggs/training_history.json")
-
         pd.DataFrame(history).to_csv("loggs/training_history.csv", index=False)
+
         print("Training history saved to loggs/training_history.csv")
         return history
 
