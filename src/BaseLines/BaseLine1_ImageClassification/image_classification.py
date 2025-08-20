@@ -4,7 +4,7 @@ from src.enums.PathEnums import Paths
 from src.enums.ModelEnums import ModelConfig
 
 from timeit import default_timer as timer
-from tqdm import tqdm
+# from tqdm import tqdm
 from pathlib import Path
 import pandas as pd
 from PIL import Image
