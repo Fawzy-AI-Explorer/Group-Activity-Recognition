@@ -64,9 +64,7 @@ class ResNet50Finetuner(nn.Module):
         # Training components
         self.criterion = nn.CrossEntropyLoss()
         self.acctorch = Accuracy(task="multiclass", num_classes=num_classes).to(self.device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
-
-        # self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=3, gamma=0.1)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=1e-4)
 
         self.model.to(self.device)
 
@@ -185,7 +183,7 @@ class ResNet50Finetuner(nn.Module):
             train_loss, train_acc = self.train_step(train_dataloader)
             print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
 
-            val_loss, val_acc, cm, f1, report = self.test_step(valid_dataloader)            
+            val_loss, val_acc, cm, f1, report = self.test_step(valid_dataloader)
             print(f"Val   loss: {val_loss:.4f} | Val   acc: {val_acc*100:.2f}%")
 
             pd.DataFrame(cm).to_csv(f"{ModelConfig.LOG_CF_MATRIX.value}{epoch}.csv", index=False)
@@ -330,7 +328,9 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
                              freeze_backbone = True, 
                              lr = ModelConfig.LR.value
                              )
-    model.explore()
+    # model.explore()
+
+    model.load_model(r"/teamspace/studios/this_studio/Group-Activity-Recognition/best_resnet50.pth")
 
     history = model.train_model(
         train_dataloader=train_dataloader,
@@ -338,7 +338,7 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
         epochs=ModelConfig.EPOCHS.value
     )
 
-    model.save_model("{ModelConfig.LOG_DIR.value}/final_resnet50.pth")
+    model.save_model(f"{ModelConfig.LOG_DIR.value}/final_resnet50.pth")
 
     test_loss, test_acc, cm, f1, report = model.test_step(test_dataloader)
     print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")

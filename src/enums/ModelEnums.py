@@ -4,7 +4,7 @@ from pathlib import Path
 
 class ModelConfig(Enum):
 
-    EPOCHS = 30
+    EPOCHS = 50
     BATCH_SIZE = 32
     LR = 1e-3
 
