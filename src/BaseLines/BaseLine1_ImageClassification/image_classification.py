@@ -181,7 +181,7 @@ class ResNet50Finetuner(nn.Module):
 
         for epoch in range(1, epochs+1):
 
-            print(f"Epoch: {epoch+1}/{epochs}\n---------")
+            print(f"Epoch: {epoch}/{epochs}\n---------")
             train_loss, train_acc = self.train_step(train_dataloader)
             print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
 
@@ -210,7 +210,7 @@ class ResNet50Finetuner(nn.Module):
             self.writer.add_scalar("Accuracy/train", train_acc, epoch)
             self.writer.add_scalar("Accuracy/val", val_acc, epoch)
 
-            print(f"Epoch {epoch+1}/{epochs} - "
+            print(f"Epoch {epoch}/{epochs} - "
                   f"Train loss: {train_loss:.4f}, acc: {train_acc:.4f} | "
                   f"Val loss: {val_loss:.4f}, acc: {val_acc:.4f}")
             if epoch%5==0:
