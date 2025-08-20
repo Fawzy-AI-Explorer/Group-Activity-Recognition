@@ -12,7 +12,6 @@ import os
 import json
 import yaml
 
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -41,7 +40,7 @@ class ResNet50Finetuner(nn.Module):
         os.makedirs(ModelConfig.LOG_METRICSS_DIR.value, exist_ok=True)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.writer = SummaryWriter(log_dir="loggs/runs")
+        self.writer = SummaryWriter(log_dir=ModelConfig.RUNs_LOG_DIR.value)
         
         # Load pretrained ResNet50
         self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
@@ -182,7 +181,7 @@ class ResNet50Finetuner(nn.Module):
 
         for epoch in range(1, epochs+1):
 
-            print(f"Epoch: {epoch}/{epochs}\n---------")
+            print(f"Epoch: {epoch+1}/{epochs}\n---------")
             train_loss, train_acc = self.train_step(train_dataloader)
             print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
 
@@ -215,17 +214,16 @@ class ResNet50Finetuner(nn.Module):
                   f"Train loss: {train_loss:.4f}, acc: {train_acc:.4f} | "
                   f"Val loss: {val_loss:.4f}, acc: {val_acc:.4f}")
             if epoch%5==0:
-                self.save_checkpoint(f"loggs/checkpoints/{epoch}_resnet50", epoch, best_val_acc)
+                self.save_checkpoint(f"{ModelConfig.LOG_DIR.value}/checkpoints/{epoch}_resnet50", epoch, best_val_acc)
 
         end_time = timer()
         self.print_train_time(start=start_time, end=end_time)
 
-        with open("loggs/training_history.json", "w") as f:
+        with open(f"{ModelConfig.LOG_DIR.value}/training_history.json", "w") as f:
             json.dump(history, f, indent=4)
-        print("Training history saved to loggs/training_history.json")
-        pd.DataFrame(history).to_csv("loggs/training_history.csv", index=False)
 
-        print("Training history saved to loggs/training_history.csv")
+        pd.DataFrame(history).to_csv(f"{ModelConfig.LOG_DIR.value}/training_history.csv", index=False)
+        print(f"Training history saved to {ModelConfig.LOG_DIR.value}/training_history.csv")
         return history
 
     def predict(self, x: torch.Tensor):
@@ -340,7 +338,7 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
         epochs=ModelConfig.EPOCHS.value
     )
 
-    model.save_model("loggs/final_resnet50.pth")
+    model.save_model("{ModelConfig.LOG_DIR.value}/final_resnet50.pth")
 
     test_loss, test_acc, cm, f1, report = model.test_step(test_dataloader)
     print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")
@@ -357,7 +355,7 @@ def main():
     class_to_idx = train_dataset.class_to_idx
     num_classes = len(class_names)
 
-    train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader)
+    model, history = train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader)
 
     
 
