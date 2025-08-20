@@ -57,8 +57,8 @@ class ResNet50Finetuner(nn.Module):
         # Replace final layer
         in_features = self.model.fc.in_features
         self.model.fc = nn.Linear(in_features, num_classes)
-        # for p in self.model.fc.parameters():
-        #     p.requires_grad = True
+        for p in self.model.fc.parameters():
+            p.requires_grad = True
         print(f"   Final layer replaced: {in_features} → {num_classes}")
 
         # Training components
@@ -298,7 +298,7 @@ def custom_data(train_split, valid_split, test_split, labels):
     # print(f"len train : {len(train_dataset)}")
     # print(f"len valid : {len(valid_dataset)}")
     # print(f"len test : {len(test_dataset)}")  
-    # #   # (26082, 13041, 4347)
+    # #   # (26082, 4347, 13041)
 
     # print(valid_dataset.labels)
     # print(valid_dataset.class_to_idx)
@@ -328,9 +328,9 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
                              freeze_backbone = True, 
                              lr = ModelConfig.LR.value
                              )
-    # model.explore()
+    model.explore()
 
-    model.load_model(r"/teamspace/studios/this_studio/Group-Activity-Recognition/best_resnet50.pth")
+    # model.load_model(r"/teamspace/studios/this_studio/Group-Activity-Recognition/best_resnet50.pth")
 
     history = model.train_model(
         train_dataloader=train_dataloader,
