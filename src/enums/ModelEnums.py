@@ -4,8 +4,8 @@ from pathlib import Path
 
 class ModelConfig(Enum):
 
-    EPOCHS = 50
-    BATCH_SIZE = 128
+    EPOCHS = 10
+    BATCH_SIZE = 32
     LR = 0.01
 
     LOG_DIR = Path("loggs")

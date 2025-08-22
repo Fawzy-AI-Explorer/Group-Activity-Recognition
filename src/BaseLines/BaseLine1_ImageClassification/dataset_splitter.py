@@ -2,7 +2,6 @@
 import random, shutil, os, pickle
 from pathlib import Path
 from src.enums.PathEnums import Paths
-from src.BaseLines.BaseLine1_ImageClassification.annotation import Annotation
 
 class DatasetSplitter:
     def __init__(self, train_ratio=0.6, valid_ratio=0.1):
@@ -24,6 +23,8 @@ class DatasetSplitter:
                 labels.add(category)
 
                 for frame_id, boxes in clip_data["frame_boxes_dct"].items():    # Frames
+                    # if str(frame_id) == str(clip_id) :
+                        # print(f"===: {video_id} || {clip_id} || {frame_id}, {category}")
                     frame_path = f"{Paths.VIDEOS_ROOT.value}/{video_id}/{clip_id}/{frame_id}.jpg"
                     all_annotations.append(
                         {
@@ -31,6 +32,7 @@ class DatasetSplitter:
                             "category": category
                         }
                     )
+
         return all_annotations, labels
 
     def split_dataset(self):
@@ -55,7 +57,7 @@ class DatasetSplitter:
 
 if __name__ == "__main__":
 
-    splitter = DatasetSplitter()
+    splitter = DatasetSplitter(train_ratio=0.7, valid_ratio=0.1)
     all_data, train_split, valid_split, test_split, labels = splitter.split_dataset()
 
     print(f"len data: {len(all_data)} || train: {len(train_split)} || valid: {len(valid_split)} || test: {len(test_split)}")
@@ -75,12 +77,6 @@ if __name__ == "__main__":
 
     # print(Paths.TRAIN_PATH.value, Paths.VALID_PATH.value, Paths.TEST_PATH.value)
 
-    # print("Train...") # 25973
-    # annot_loader.save_split(train_data, Paths.TRAIN_PATH.value)
-    # print("Valid...") # 12861
-    # annot_loader.save_split(valid_data, Paths.VALID_PATH.value)
-    # print("Test...") # 4300
-    # annot_loader.save_split(test_data, Paths.TEST_PATH.value)
     # print(Paths.TRAIN_PATH.value, Paths.VALID_PATH.value, Paths.TEST_PATH.value)
 
 

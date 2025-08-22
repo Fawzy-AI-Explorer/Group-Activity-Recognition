@@ -98,13 +98,18 @@ class ResNet50Finetuner(nn.Module):
         total_time = end - start
         print(f"Train time on {self.device}: {total_time:.3f} seconds")
         return total_time
+    
+    def my_accuracy_fn(self, y_true, y_pred):
+        correct = torch.eq(y_true, y_pred).sum().item()
+        acc = (correct / len(y_pred)) * 100
+        return acc
 
     def train_step(self,
                data_loader: torch.utils.data.DataLoader
                 ):
         
         self.model.train() # put model in train mode
-        train_loss = 0.0
+        train_loss, acc = 0.0, 0.0
 
 
         for batch, (X, y) in enumerate(data_loader):
@@ -122,6 +127,7 @@ class ResNet50Finetuner(nn.Module):
 
             # Metrics
             train_loss += loss.item()
+            acc += self.my_accuracy_fn(y, y_pred.argmax(dim=1))
             self.acctorch(y_pred.argmax(dim=1), y)
             # break
 
@@ -129,12 +135,13 @@ class ResNet50Finetuner(nn.Module):
     
         # Calculate loss and accuracy per epoch and print out what's happening
         avg_loss  = train_loss / len(data_loader)
+        my_avg_acc = acc / len(data_loader)
         avg_acc = self.acctorch.compute()
         avg_acc = avg_acc.item()
         self.acctorch.reset()
         # print(f"Train loss: {avg_loss:.5f} | Train accuracy: {avg_acc*100}")
 
-        return avg_loss, avg_acc
+        return avg_loss, avg_acc, my_avg_acc
 
 
     def test_step(self,
@@ -189,7 +196,7 @@ class ResNet50Finetuner(nn.Module):
         for epoch in range(1, epochs):
 
             print(f"Epoch: {epoch}/{epochs}\n---------")
-            train_loss, train_acc = self.train_step(train_dataloader)
+            train_loss, train_acc, my_avg_acc = self.train_step(train_dataloader)
             # print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
 
             val_loss, val_acc, cm, f1, report = self.test_step(valid_dataloader)
@@ -219,7 +226,7 @@ class ResNet50Finetuner(nn.Module):
             self.writer.add_scalar("Accuracy/val", val_acc, epoch)
 
             print(f"Epoch {epoch}/{epochs} - "
-                  f"Train loss: {train_loss:.4f}, acc: {train_acc*100:.4f} | "
+                  f"Train loss: {train_loss:.4f}, acc: {train_acc*100:.4f}, {my_avg_acc} | "
                   f"Val loss: {val_loss:.4f}, acc: {val_acc*100:.4f}")
             if epoch%5==0:
                 self.save_checkpoint(f"{ModelConfig.LOG_DIR.value}/checkpoints/{epoch}_resnet50", epoch, best_val_acc)
@@ -274,11 +281,11 @@ class ResNet50Finetuner(nn.Module):
 def split_data():
     print("Strart DatasetSplitter...\n")
 
-    splitter = DatasetSplitter()
+    splitter = DatasetSplitter(train_ratio=0.1, valid_ratio=0.1)
     all_data, train_split, valid_split, test_split, labels = splitter.split_dataset()
     
     # print("labels: ", labels, "\n")
-    # print(f"len data: {len(all_data)} || train: {len(train_split)} || valid: {len(valid_split)} || test: {len(test_split)}")
+    print(f"len data: {len(all_data)} || train: {len(train_split)} || valid: {len(valid_split)} || test: {len(test_split)}")
     print("==="*50, "\n")
 
     return train_split, valid_split, test_split, labels
