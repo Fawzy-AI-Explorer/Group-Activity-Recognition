@@ -57,14 +57,23 @@ class ResNet50Finetuner(nn.Module):
         # Replace final layer
         in_features = self.model.fc.in_features
         self.model.fc = nn.Linear(in_features, num_classes)
-        for p in self.model.fc.parameters():
-            p.requires_grad = True
+        # for p in self.model.fc.parameters():
+        #     p.requires_grad = True
         print(f"   Final layer replaced: {in_features} → {num_classes}")
 
         # Training components
         self.criterion = nn.CrossEntropyLoss()
         self.acctorch = Accuracy(task="multiclass", num_classes=num_classes).to(self.device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=1e-4)
+        # self.optimizer = optim.Adam(self.model.parameters(), lr=, weight_decay=1e-4)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4)
+
+
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            self.optimizer, 
+            mode='min',       #  min val_loss 
+            factor=0.1, 
+            patience=3
+        )
 
         self.model.to(self.device)
 
@@ -177,14 +186,15 @@ class ResNet50Finetuner(nn.Module):
         start_time = timer()
         best_val_acc = 0
 
-        for epoch in range(1, epochs+1):
+        for epoch in range(1, epochs):
 
             print(f"Epoch: {epoch}/{epochs}\n---------")
             train_loss, train_acc = self.train_step(train_dataloader)
-            print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
+            # print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
 
             val_loss, val_acc, cm, f1, report = self.test_step(valid_dataloader)
-            print(f"Val   loss: {val_loss:.4f} | Val   acc: {val_acc*100:.2f}%")
+            self.scheduler.step(val_loss)
+            # print(f"Val   loss: {val_loss:.4f} | Val   acc: {val_acc*100:.2f}%")
 
             pd.DataFrame(cm).to_csv(f"{ModelConfig.LOG_CF_MATRIX.value}{epoch}.csv", index=False)
 
@@ -209,8 +219,8 @@ class ResNet50Finetuner(nn.Module):
             self.writer.add_scalar("Accuracy/val", val_acc, epoch)
 
             print(f"Epoch {epoch}/{epochs} - "
-                  f"Train loss: {train_loss:.4f}, acc: {train_acc:.4f} | "
-                  f"Val loss: {val_loss:.4f}, acc: {val_acc:.4f}")
+                  f"Train loss: {train_loss:.4f}, acc: {train_acc*100:.4f} | "
+                  f"Val loss: {val_loss:.4f}, acc: {val_acc*100:.4f}")
             if epoch%5==0:
                 self.save_checkpoint(f"{ModelConfig.LOG_DIR.value}/checkpoints/{epoch}_resnet50", epoch, best_val_acc)
 
