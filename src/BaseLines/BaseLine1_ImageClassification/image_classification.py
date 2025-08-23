@@ -23,6 +23,7 @@ from torchvision import models
 from torchinfo  import summary
 from sklearn.metrics import confusion_matrix, classification_report, f1_score
 import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 
 class ResNet50Finetuner(nn.Module):
@@ -44,8 +45,9 @@ class ResNet50Finetuner(nn.Module):
         self.writer = SummaryWriter(log_dir=ModelConfig.RUNs_LOG_DIR.value)
         
         # Load pretrained ResNet50
-        self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-        print("  Loaded pretrained ResNet50 (ImageNet weights)")
+        # self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        self.model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+        print("  Loaded pretrained ResNet50  ")
 
         # Freeze backbone if required
         if freeze_backbone:
@@ -65,8 +67,8 @@ class ResNet50Finetuner(nn.Module):
         # Training components
         self.criterion = nn.CrossEntropyLoss()
         self.acctorch = Accuracy(task="multiclass", num_classes=num_classes).to(self.device)
-        # self.optimizer = optim.Adam(self.model.parameters(), lr=, weight_decay=1e-4)
-        self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4)
+        self.optimizer = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-3)
+        # self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4)
 
 
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -326,28 +328,34 @@ def custom_data(train_split, valid_split, test_split, labels):
     #     ToTensorV2()
     # ])
 
-        # train_transforms = A.Compose([
-    #     A.Resize(224, 224),
-    #     A.OneOf([ A.GaussianBlur(blur_limit=(3, 7)),  A.ColorJitter(brightness=0.2),A.RandomBrightnessContrast(),A.GaussNoise() ], p=0.90),
-    #     A.OneOf([ A.HorizontalFlip(), A.VerticalFlip(), ], p=0.05),
-    #     A.Normalize( mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    #     ToTensorV2()
-    # ])
-
     train_transforms = transforms.Compose([
-            transforms.Resize((256, 256)),
-            transforms.CenterCrop((224, 224)),
-            # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        transforms.Resize((224, 224)),  # Resize to 224x224
+        transforms.RandomApply([
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
+        ], p=0.9),
+        transforms.RandomHorizontalFlip(p=0.25),
+        transforms.RandomVerticalFlip(p=0.25),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225])
+    ])
+
+
+    # train_transforms = transforms.Compose([
+    #         transforms.Resize((256, 256)),
+    #         transforms.CenterCrop((224, 224)),
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    #     ])
 
     test_transforms = transforms.Compose([
-            transforms.Resize((256, 256)),
-            transforms.CenterCrop((224, 224)),
-            # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            transforms.Resize((224, 224)),
+            # transforms.CenterCrop((224, 224)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], 
+                std=[0.229, 0.224, 0.225]
+                )
         ])
 
     train_dataset = CustomDataset(train_split, labels, transform=train_transforms)
@@ -385,7 +393,7 @@ def data_loaders(train_dataset, valid_dataset, test_dataset):
 
 def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader):
     model = ResNet50Finetuner(num_classes=num_classes,
-                             freeze_backbone = True, 
+                             freeze_backbone = False, 
                              lr = ModelConfig.LR.value
                              )
     model.explore()
@@ -396,10 +404,10 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
 
 
 
-    
+
     # X_batch, y_batch = next(iter(train_dataloader))
     # model.overfit_on_batch(X_batch, y_batch, epochs=30)
-    
+
     history = model.train_model(
         train_dataloader=train_dataloader,
         valid_dataloader=valid_dataloader,
@@ -410,8 +418,8 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
 
 
 
-    # test_loss, test_acc, cm, f1, report = model.test_step(test_dataloader)
-    # print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")
+    test_loss, test_acc, cm, f1, report = model.test_step(test_dataloader)
+    print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")
 
     return model, history
 
@@ -421,9 +429,16 @@ def main():
     train_dataset, valid_dataset, test_dataset = custom_data(train_split, valid_split, test_split, labels)
     train_dataloader, valid_dataloader, test_dataloader = data_loaders(train_dataset, valid_dataset, test_dataset)
     
+    # print(f"Length of train dataloader: {len(train_dataloader)} batches of {train_dataloader.batch_size}") #=> 816 || 32
+    # print(f"Length of test dataloader: {len(test_dataloader)} batches of {test_dataloader.batch_size}")   #=> 136 || 32
+    # print(f"Length of valid dataloader: {len(valid_dataloader)} batches of {valid_dataloader.batch_size}") #=> 408 || 32
+
     class_names = train_dataset.labels
     class_to_idx = train_dataset.class_to_idx
     num_classes = len(class_names)
+    print(class_to_idx)
+
+    
 
     model, history = train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader)
 
