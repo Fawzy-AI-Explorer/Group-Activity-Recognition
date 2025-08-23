@@ -22,6 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import models
 from torchinfo  import summary
 from sklearn.metrics import confusion_matrix, classification_report, f1_score
+import albumentations as A
 
 
 class ResNet50Finetuner(nn.Module):
@@ -58,7 +59,7 @@ class ResNet50Finetuner(nn.Module):
         in_features = self.model.fc.in_features
         self.model.fc = nn.Linear(in_features, num_classes)
         # for p in self.model.fc.parameters():
-        #     p.requires_grad = True
+            # p.requires_grad = True
         print(f"   Final layer replaced: {in_features} → {num_classes}")
 
         # Training components
@@ -103,6 +104,22 @@ class ResNet50Finetuner(nn.Module):
         correct = torch.eq(y_true, y_pred).sum().item()
         acc = (correct / len(y_pred)) * 100
         return acc
+    
+    def overfit_on_batch(self, X_batch, y_batch, epochs=50):
+        self.model.train()
+        X_batch, y_batch = X_batch.to(self.device), y_batch.to(self.device)
+
+        for epoch in range(epochs):
+            y_pred = self.model(X_batch)
+            loss = self.criterion(y_pred, y_batch)
+
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+
+            acc = self.my_accuracy_fn(y_batch, y_pred.argmax(dim=1))
+            print(f"Epoch {epoch+1}/{epochs} - Loss: {loss.item():.4f}, Acc: {acc:.2f}%")
+
 
     def train_step(self,
                data_loader: torch.utils.data.DataLoader
@@ -110,11 +127,14 @@ class ResNet50Finetuner(nn.Module):
         
         self.model.train() # put model in train mode
         train_loss, acc = 0.0, 0.0
-
+        self.acctorch.reset()
 
         for batch, (X, y) in enumerate(data_loader):
+            # if batch == 2:
+            #     break
             # Send data to GPU
             X, y = X.to(self.device), y.to(self.device)
+            
 
             # Forward
             y_pred = self.model(X)
@@ -127,21 +147,21 @@ class ResNet50Finetuner(nn.Module):
 
             # Metrics
             train_loss += loss.item()
-            acc += self.my_accuracy_fn(y, y_pred.argmax(dim=1))
-            self.acctorch(y_pred.argmax(dim=1), y)
+            # self.acctorch(y_pred.argmax(dim=1), y)
+            self.acctorch.update(y_pred, y)
+
             # break
 
         
     
         # Calculate loss and accuracy per epoch and print out what's happening
         avg_loss  = train_loss / len(data_loader)
-        my_avg_acc = acc / len(data_loader)
         avg_acc = self.acctorch.compute()
         avg_acc = avg_acc.item()
-        self.acctorch.reset()
-        # print(f"Train loss: {avg_loss:.5f} | Train accuracy: {avg_acc*100}")
+        # self.acctorch.reset()
+        # print(f"Train loss: {avg_loss:.5f} | Train accuracy: {avg_acc*100}, || my_avg_acc")
 
-        return avg_loss, avg_acc, my_avg_acc
+        return avg_loss, avg_acc 
 
 
     def test_step(self,
@@ -153,7 +173,11 @@ class ResNet50Finetuner(nn.Module):
         
         with torch.inference_mode():
             y_true, y_pred = [], []
-            for X, y in data_loader:
+            # for X, y in data_loader:
+            for batch, (X, y) in enumerate(data_loader):
+                # if batch == 2:
+                #     break
+                # Send data to GPU
                 X, y = X.to(self.device), y.to(self.device)
                 
                 test_pred = self.model(X)
@@ -195,9 +219,8 @@ class ResNet50Finetuner(nn.Module):
 
         for epoch in range(1, epochs):
 
-            print(f"Epoch: {epoch}/{epochs}\n---------")
-            train_loss, train_acc, my_avg_acc = self.train_step(train_dataloader)
-            # print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc*100:.2f}%")
+            # print(f"Epoch: {epoch}/{epochs}")
+            train_loss, train_acc = self.train_step(train_dataloader)
 
             val_loss, val_acc, cm, f1, report = self.test_step(valid_dataloader)
             self.scheduler.step(val_loss)
@@ -226,7 +249,7 @@ class ResNet50Finetuner(nn.Module):
             self.writer.add_scalar("Accuracy/val", val_acc, epoch)
 
             print(f"Epoch {epoch}/{epochs} - "
-                  f"Train loss: {train_loss:.4f}, acc: {train_acc*100:.4f}, {my_avg_acc} | "
+                  f"Train loss: {train_loss:.4f}, acc: {train_acc*100:.4f}|"
                   f"Val loss: {val_loss:.4f}, acc: {val_acc*100:.4f}")
             if epoch%5==0:
                 self.save_checkpoint(f"{ModelConfig.LOG_DIR.value}/checkpoints/{epoch}_resnet50", epoch, best_val_acc)
@@ -281,7 +304,7 @@ class ResNet50Finetuner(nn.Module):
 def split_data():
     print("Strart DatasetSplitter...\n")
 
-    splitter = DatasetSplitter(train_ratio=0.1, valid_ratio=0.1)
+    splitter = DatasetSplitter(train_ratio=0.7, valid_ratio=0.1)
     all_data, train_split, valid_split, test_split, labels = splitter.split_dataset()
     
     # print("labels: ", labels, "\n")
@@ -292,6 +315,25 @@ def split_data():
 
 def custom_data(train_split, valid_split, test_split, labels):
     print("Start CustomDataset...\n")
+
+   
+    # val_transforms = A.Compose([
+    #     A.Resize(224, 224),
+    #     A.Normalize(
+    #         mean=[0.485, 0.456, 0.406],
+    #         std=[0.229, 0.224, 0.225]
+    #     ),
+    #     ToTensorV2()
+    # ])
+
+        # train_transforms = A.Compose([
+    #     A.Resize(224, 224),
+    #     A.OneOf([ A.GaussianBlur(blur_limit=(3, 7)),  A.ColorJitter(brightness=0.2),A.RandomBrightnessContrast(),A.GaussNoise() ], p=0.90),
+    #     A.OneOf([ A.HorizontalFlip(), A.VerticalFlip(), ], p=0.05),
+    #     A.Normalize( mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    #     ToTensorV2()
+    # ])
+
     train_transforms = transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.CenterCrop((224, 224)),
@@ -312,9 +354,9 @@ def custom_data(train_split, valid_split, test_split, labels):
     valid_dataset = CustomDataset(valid_split, labels, transform=test_transforms)
     test_dataset  = CustomDataset(test_split,  labels, transform=test_transforms)
 
-    # print(f"len train : {len(train_dataset)}")
-    # print(f"len valid : {len(valid_dataset)}")
-    # print(f"len test : {len(test_dataset)}")  
+    print(f"len train : {len(train_dataset)}")
+    print(f"len valid : {len(valid_dataset)}")
+    print(f"len test : {len(test_dataset)}")  
     # #   # (26082, 4347, 13041)
 
     # print(valid_dataset.labels)
@@ -323,7 +365,8 @@ def custom_data(train_split, valid_split, test_split, labels):
     return train_dataset, valid_dataset, test_dataset
 
 def data_loaders(train_dataset, valid_dataset, test_dataset):
-    
+
+  
     print("Strat DataLoader...\n")
     BATCH_SIZE = ModelConfig.BATCH_SIZE.value
     epochs = ModelConfig.EPOCHS
@@ -331,9 +374,9 @@ def data_loaders(train_dataset, valid_dataset, test_dataset):
     valid_dataloader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
     test_dataloader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
-    # print(f"Length of train dataloader: {len(train_dataloader)} batches of {train_dataloader.batch_size}") #=> 816 || 32
-    # print(f"Length of test dataloader: {len(test_dataloader)} batches of {test_dataloader.batch_size}")   #=> 136 || 32
-    # print(f"Length of valid dataloader: {len(valid_dataloader)} batches of {valid_dataloader.batch_size}") #=> 408 || 32
+    print(f"Length of train dataloader: {len(train_dataloader)} batches of {train_dataloader.batch_size}") #=> 816 || 32
+    print(f"Length of test dataloader: {len(test_dataloader)} batches of {test_dataloader.batch_size}")   #=> 136 || 32
+    print(f"Length of valid dataloader: {len(valid_dataloader)} batches of {valid_dataloader.batch_size}") #=> 408 || 32
 
     # train_features_batch, train_labels_batch = next(iter(train_dataloader))
     # print(train_features_batch.shape, train_labels_batch.shape)
@@ -349,6 +392,14 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
 
     # model.load_model(r"/teamspace/studios/this_studio/Group-Activity-Recognition/best_resnet50.pth")
 
+
+
+
+
+    
+    # X_batch, y_batch = next(iter(train_dataloader))
+    # model.overfit_on_batch(X_batch, y_batch, epochs=30)
+    
     history = model.train_model(
         train_dataloader=train_dataloader,
         valid_dataloader=valid_dataloader,
@@ -357,8 +408,10 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
 
     model.save_model(f"{ModelConfig.LOG_DIR.value}/final_resnet50.pth")
 
-    test_loss, test_acc, cm, f1, report = model.test_step(test_dataloader)
-    print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")
+
+
+    # test_loss, test_acc, cm, f1, report = model.test_step(test_dataloader)
+    # print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")
 
     return model, history
 
