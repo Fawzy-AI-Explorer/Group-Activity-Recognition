@@ -15,6 +15,17 @@ class DatasetSplitter:
             videos_annot_dct = pickle.load(f)
         labels = set()
         all_annotations = []
+        train_split = []
+        valid_split = []
+        i_tr = 0
+        i_v = 0
+
+        train_ids = ["1", "3", "6", "7", "10", "13", "15", "16", "18", "22", "23", "31",
+                    "32", "36", "38", "39", "40", "41", "42", "48", "50", "52", "53", "54"]
+
+
+        val_ids = ["0", "2", "8", "12", "17", "19", "24", "26", "27", "28", "30", "33", "46", "49", "51"]
+
         for video_id, clips in videos_annot_dct.items(): # each video
 
             for clip_id, clip_data in clips.items():     # each clip
@@ -32,23 +43,42 @@ class DatasetSplitter:
                             "category": category
                         }
                     )
+                    if str(video_id) in train_ids:
+                        i_tr+=1
+                        train_split.append(
+                            {
+                                "path": frame_path, 
+                                "category": category
+                            }
+                        )
+                    if str(video_id) in val_ids:
+                        i_v+=1
+                        valid_split.append(
+                            {
+                                "path": frame_path, 
+                                "category": category
+                            }
 
-        return all_annotations, labels
+                        )
+
+                    
+        print(i_tr, i_v, i_tr+i_v)
+        return all_annotations, train_split, valid_split, valid_split, labels
 
     def split_dataset(self):
-        all_data, labels = self.get_all_annotations()
-        all_data_cpy = all_data.copy()
-        random.shuffle(all_data)
+        all_annotations, train_split, valid_split, test_split, labels = self.get_all_annotations()
+        # all_data_cpy = all_data.copy()
+        # # random.shuffle(all_data)
 
-        n_total = len(all_data)
-        n_train = int(n_total * self.train_ratio)
-        n_valid = int(n_total * self.valid_ratio)
+        # n_total = len(all_data)
+        # n_train = int(n_total * self.train_ratio)
+        # n_valid = int(n_total * self.valid_ratio)
 
-        train_split = all_data[:n_train]
-        valid_split = all_data[n_train:n_train+n_valid]
-        test_split = all_data[n_train+n_valid:]
+        # train_split = all_data[:n_train]
+        # valid_split = all_data[n_train:n_train+n_valid]
+        # test_split = all_data[n_train+n_valid:]
 
-        return all_data_cpy, train_split, valid_split, test_split, sorted(list(labels))
+        return all_annotations, train_split, valid_split, test_split, sorted(list(labels))
 
 # splitter = DatasetSplitter()
 # train_split, valid_split, test_split, labels = splitter.split_dataset()
