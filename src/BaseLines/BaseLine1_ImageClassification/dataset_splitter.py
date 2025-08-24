@@ -10,7 +10,7 @@ class DatasetSplitter:
 
     def get_all_annotations(self):
 
-        with open(os.path.join('../../', Paths.ANNOT_PKL.value), "rb") as f:
+        with open(Paths.ANNOT_PKL.value, "rb") as f:
             videos_annot_dct = pickle.load(f)
 
         labels = set()
@@ -39,30 +39,26 @@ class DatasetSplitter:
                         # print(f"===: {video_id} || {clip_id} || {frame_id}, {category}")
                     frame_path = f"{Paths.VIDEOS_ROOT.value}/{video_id}/{clip_id}/{frame_id}.jpg"
                     i_all+=1
-                    all_annotations.append(
-                        {
-                            "path": os.path.join('../../', frame_path), 
-                            "category": category
-                        }
-                    )
+                    all_annotations.append({"path": frame_path,   "category": category })
+                        
                     if str(video_id) in train_ids:
                         i_tr+=1
                         # if i_tr == 2:
                         #     print(f"{i_tr}_train: path: {frame_path}, category: {category}")
                             # plot_image(frame_path, category)
-                        train_split.append({"path": os.path.join('../../', frame_path),   "category": category })
+                        train_split.append({"path": frame_path,   "category": category })
                     elif str(video_id) in val_ids:
                         i_v+=1
                         # if i_v == 3:
                         #     print(f"{i_v}_valid: path: {frame_path}, category: {category}")
                             # plot_image(frame_path, category)
-                        valid_split.append({"path": os.path.join('../../', frame_path),   "category": category })
+                        valid_split.append({"path": frame_path,   "category": category })
                     else:
                         i_ts+=1
                         # if i_ts == 1:
                         #     print(f"{i_ts}_test: path: {frame_path}, category: {category}")
                         #     plot_image(frame_path, category)
-                        test_split.append({"path": os.path.join('../../', frame_path),   "category": category })
+                        test_split.append({"path": frame_path,   "category": category })
 
         print(i_tr, i_v, i_ts, i_tr+i_v+i_ts, i_all)
 
