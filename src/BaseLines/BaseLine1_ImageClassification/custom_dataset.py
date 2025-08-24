@@ -43,29 +43,19 @@ class CustomDataset(Dataset):
 def custom_data(train_split, valid_split, test_split, labels):
     print("Start CustomDataset...\n")
 
-   
-    # train_transforms = transforms.Compose([
-    #     transforms.Resize((224, 224)),
-    #     transforms.RandomApply([
-    #         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
-    #     ], p=0.9),
-    #     transforms.RandomHorizontalFlip(p=0.25),
-    #     transforms.RandomVerticalFlip(p=0.25),
-    #     transforms.ToTensor(),
-    #     transforms.Normalize(mean=[0.485, 0.456, 0.406],
-    #                         std=[0.229, 0.224, 0.225])
-    # ])
 
     train_transforms = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
+        transforms.CenterCrop((224, 224)),
+        # transforms.Resize((224, 224)),
         transforms.RandomRotation(15),
         transforms.RandomApply([
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
-        ], p=0.9),
-        # transforms.RandomHorizontalFlip(p=0.25),
-        # transforms.RandomVerticalFlip(p=0.25),
-        transforms.RandomGrayscale(p=0.1),
-        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1)
+        ], p=0.3),
+        transforms.RandomGrayscale(p=0.05),
+        transforms.RandomApply([
+        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0))
+        ], p=0.3),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225])
@@ -73,7 +63,8 @@ def custom_data(train_split, valid_split, test_split, labels):
 
 
     test_transforms = transforms.Compose([
-            transforms.Resize((224, 224)),
+            transforms.Resize((256, 256)),
+            transforms.CenterCrop((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], 

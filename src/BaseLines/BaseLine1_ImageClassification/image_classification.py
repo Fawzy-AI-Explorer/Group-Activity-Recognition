@@ -304,53 +304,52 @@ class ResNet50Finetuner(nn.Module):
 
 
 def split_data():
-    print("Strart DatasetSplitter...\n")
+    print("Start DatasetSplitter...\n")
 
-    splitter = DatasetSplitter(train_ratio=0.7, valid_ratio=0.1)
-    all_data, train_split, valid_split, test_split, labels = splitter.split_dataset()
+    splitter = DatasetSplitter()
+    all_data, train_split, valid_split, test_split, labels = splitter.get_all_annotations()
     
-    # print("labels: ", labels, "\n")
+    print("labels: ", labels, "\n")
     print(f"len data: {len(all_data)} || train: {len(train_split)} || valid: {len(valid_split)} || test: {len(test_split)}")
     print("==="*50, "\n")
 
     return train_split, valid_split, test_split, labels
 
+
 def custom_data(train_split, valid_split, test_split, labels):
     print("Start CustomDataset...\n")
 
    
-    # val_transforms = A.Compose([
-    #     A.Resize(224, 224),
-    #     A.Normalize(
-    #         mean=[0.485, 0.456, 0.406],
-    #         std=[0.229, 0.224, 0.225]
-    #     ),
-    #     ToTensorV2()
+    # train_transforms = transforms.Compose([
+    #     transforms.Resize((224, 224)),
+    #     transforms.RandomApply([
+    #         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
+    #     ], p=0.9),
+    #     transforms.RandomHorizontalFlip(p=0.25),
+    #     transforms.RandomVerticalFlip(p=0.25),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize(mean=[0.485, 0.456, 0.406],
+    #                         std=[0.229, 0.224, 0.225])
     # ])
 
     train_transforms = transforms.Compose([
-        transforms.Resize((224, 224)),  # Resize to 224x224
+        transforms.Resize((224, 224)),
+        transforms.RandomRotation(15),
         transforms.RandomApply([
             transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
         ], p=0.9),
-        transforms.RandomHorizontalFlip(p=0.25),
-        transforms.RandomVerticalFlip(p=0.25),
+        # transforms.RandomHorizontalFlip(p=0.25),
+        # transforms.RandomVerticalFlip(p=0.25),
+        transforms.RandomGrayscale(p=0.1),
+        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225])
     ])
 
 
-    # train_transforms = transforms.Compose([
-    #         transforms.Resize((256, 256)),
-    #         transforms.CenterCrop((224, 224)),
-    #         transforms.ToTensor(),
-    #         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    #     ])
-
     test_transforms = transforms.Compose([
             transforms.Resize((224, 224)),
-            # transforms.CenterCrop((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], 
@@ -365,10 +364,9 @@ def custom_data(train_split, valid_split, test_split, labels):
     print(f"len train : {len(train_dataset)}")
     print(f"len valid : {len(valid_dataset)}")
     print(f"len test : {len(test_dataset)}")  
-    # #   # (26082, 4347, 13041)
 
-    # print(valid_dataset.labels)
-    # print(valid_dataset.class_to_idx)
+    print(valid_dataset.labels)
+    print(valid_dataset.class_to_idx)
     print("="*50, "\n")
     return train_dataset, valid_dataset, test_dataset
 
@@ -376,8 +374,9 @@ def data_loaders(train_dataset, valid_dataset, test_dataset):
 
   
     print("Strat DataLoader...\n")
+
     BATCH_SIZE = ModelConfig.BATCH_SIZE.value
-    epochs = ModelConfig.EPOCHS
+
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     valid_dataloader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
     test_dataloader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
