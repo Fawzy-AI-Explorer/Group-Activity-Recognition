@@ -11,6 +11,7 @@ from PIL import Image
 import os
 import json
 import yaml
+import logging
 
 import torch
 import torch.nn as nn
@@ -74,20 +75,27 @@ class ResNet50Finetuner(nn.Module):
 
 
 def split_data():
-    print("Start DatasetSplitter...\n")
+    msg = "Start DatasetSplitter..."
+    print(msg)
+    logging.info(msg)
 
     splitter = DatasetSplitter()
     all_data, train_split, valid_split, test_split, labels = splitter.get_all_annotations()
     
     print("labels: ", labels, "\n")
-    print(f"len data: {len(all_data)} || train: {len(train_split)} || valid: {len(valid_split)} || test: {len(test_split)}")
+    msg = f"len all data: {len(all_data)} || len train: {len(train_split)} || len valid: {len(valid_split)} || len test: {len(test_split)}"
+    print(msg)
+    logging.info(msg)
+
     print("==="*50, "\n")
 
     return train_split, valid_split, test_split, labels
 
 
 def custom_data(train_split, valid_split, test_split, labels):
-    print("Start CustomDataset...\n")
+    msg = "Start CustomDataset..."
+    print(msg)
+    logging.info(msg)
 
    
     # train_transforms = transforms.Compose([
@@ -145,7 +153,9 @@ def custom_data(train_split, valid_split, test_split, labels):
 def data_loaders(train_dataset, valid_dataset, test_dataset):
 
   
-    print("Strat DataLoader...\n")
+    msg = "Strat DataLoader..."
+    print(msg)
+    logging.info(msg)
 
     BATCH_SIZE = ModelConfig.BATCH_SIZE.value
 
@@ -153,9 +163,17 @@ def data_loaders(train_dataset, valid_dataset, test_dataset):
     valid_dataloader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
     test_dataloader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
-    print(f"Length of train dataloader: {len(train_dataloader)} batches of {train_dataloader.batch_size}") #=> 816 || 32
-    print(f"Length of test dataloader: {len(test_dataloader)} batches of {test_dataloader.batch_size}")   #=> 136 || 32
-    print(f"Length of valid dataloader: {len(valid_dataloader)} batches of {valid_dataloader.batch_size}") #=> 408 || 32
+    msg = f"Length of train dataloader: {len(train_dataloader)} batches of {train_dataloader.batch_size}"
+    print(msg)
+    logging.info(msg)
+
+    msg = f"Length of test dataloader: {len(test_dataloader)} batches of {test_dataloader.batch_size}"  
+    print(msg)
+    logging.info(msg)
+
+    msg = f"Length of valid dataloader: {len(valid_dataloader)} batches of {valid_dataloader.batch_size}" 
+    print(msg)
+    logging.info(msg)
 
     # train_features_batch, train_labels_batch = next(iter(train_dataloader))
     # print(train_features_batch.shape, train_labels_batch.shape)
@@ -178,7 +196,9 @@ def explore(model, device, input_size=(1, 3, 224, 224)):
 # =================
 def print_train_time(model, device, start: float, end: float):
         total_time = end - start
-        print(f"Train time on {device}: {total_time:.3f} seconds")
+        msg = f"Train time on {device}: {total_time:.3f} seconds"
+        print(msg)
+        logging.info(msg)
         return total_time
 # ==============
 
@@ -233,6 +253,13 @@ def train_step(model, data_loader, device, criterion, acctorch, optimizer):
             # Metrics
             train_loss += loss.item()
             acctorch.update(y_pred, y)
+
+            if batch%50==0:
+                batch_acc = acctorch.compute().item() * 100
+                msg = f"    Batch:{batch}/{len(data_loader)} | train loss: {loss.item():.4f} | train accuracy: {batch_acc:.2f}%"
+                # print(msg)
+                logging.info(msg)
+
     
         # Calculate loss and accuracy per epoch and print out what's happening
         avg_loss  = train_loss / len(data_loader)
@@ -265,7 +292,14 @@ def test_step(model, data_loader, device, criterion, acctorch, optimizer):
 
                 y_true.extend(y.cpu().numpy())
                 y_pred.extend(test_pred.argmax(dim=1).cpu().numpy())
-                # break
+                # break  
+
+                # if batch%100==0:
+                #     batch_acc = acctorch.compute().item() * 100
+                #     msg = f"    Batch:{batch}/{len(data_loader)} | valid loss: {loss.item():.4f} | valid accuracy: {batch_acc:.2f}%"
+                #     print(msg)
+                #     logging.info(msg)
+
             
             cm = confusion_matrix(y_true, y_pred)
             f1 = f1_score(y_true, y_pred, average="weighted")
@@ -325,7 +359,12 @@ def load_checkpoint(model, optimizer, device, load_path):
 
 # =============
 def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader, lr, epochs, debug_overfit=False):
-
+        logging.basicConfig(
+            filename=os.path.join(ModelConfig.LOG_DIR.value, "training.log"),
+            filemode="a",
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            level=logging.INFO
+        )
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         criterion = nn.CrossEntropyLoss()
@@ -346,25 +385,32 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
 # =============================
         if debug_overfit:
             # single batch
-            print(f"[INFO] : Overfit ")
+            msg = f"[INFO] : Overfit One Batch"
+            logging.info(msg)
             X_batch, y_batch = next(iter(train_dataloader))
             overfit_on_batch(model, X_batch, y_batch, device, criterion, optimizer, acctorch, epochs=20)
             return model, {}
         
+        msg = f"Start Training... "
+        print(msg)
+        logging.info(msg)
         history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
         start_time = timer()
         best_val_acc = 0
 
         for epoch in range(1, epochs+1):
 
-            # print(f"Epoch: {epoch}/{epochs}")
+            print(f"Epoch: {epoch}/{epochs}")
             train_loss, train_acc = train_step(model, train_dataloader, device, criterion, acctorch, optimizer)
-
 
 
             val_loss, val_acc, cm, f1, report = test_step(model, valid_dataloader, device, criterion, acctorch, optimizer)
             scheduler.step(val_loss)
             # print(f"Val   loss: {val_loss:.4f} | Val   acc: {val_acc*100:.2f}%")
+
+            msg = f"    Train loss: {train_loss:.4f}, acc: {train_acc*100:.4f} | Val loss: {val_loss:.4f}, acc: {val_acc*100:.4f}"
+            print(msg)
+            logging.info(msg)
 
             pd.DataFrame(cm).to_csv(f"{ModelConfig.LOG_CF_MATRIX.value}{epoch}.csv", index=False)
 
@@ -390,9 +436,8 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
             writer.add_scalar("F1/val", f1, epoch)
 
 
-            print(f"Epoch {epoch}/{epochs} - "
-                  f"Train loss: {train_loss:.4f}, acc: {train_acc*100:.4f}|"
-                  f"Val loss: {val_loss:.4f}, acc: {val_acc*100:.4f}")
+            
+
             if epoch%5==0:
                 save_checkpoint(model, optimizer, f"{ModelConfig.LOG_DIR.value}/checkpoints/{epoch}_resnet50.pth", epoch, best_val_acc)
 
@@ -407,7 +452,9 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
 
 
         test_loss, test_acc, cm, f1, report = test_step(model, test_dataloader, device, criterion, acctorch, optimizer)
-        print(f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%")
+        msg = f"Final Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%"
+        print(msg)
+        logging.info(msg)
         save_model(model, f"{ModelConfig.LOG_DIR.value}/final_resnet50.pth")
 
         return model, history
@@ -445,4 +492,4 @@ if __name__ == "__main__":
     main()
 
 
-# python -m src.BaseLines.BaseLine1_ImageClassification.image_classification
+# python -m src.BaseLines.BaseLine1_ImageClassification.image_class2
