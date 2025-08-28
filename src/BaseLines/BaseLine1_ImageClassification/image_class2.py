@@ -257,7 +257,7 @@ def train_step(model, data_loader, device, criterion, acctorch, optimizer):
             if batch%50==0:
                 batch_acc = acctorch.compute().item() * 100
                 msg = f"    Batch:{batch}/{len(data_loader)} | train loss: {loss.item():.4f} | train accuracy: {batch_acc:.2f}%"
-                # print(msg)
+                print(msg)
                 logging.info(msg)
 
     
@@ -359,12 +359,13 @@ def load_checkpoint(model, optimizer, device, load_path):
 
 # =============
 def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader, lr, epochs, debug_overfit=False):
-        logging.basicConfig(
-            filename=os.path.join(ModelConfig.LOG_DIR.value, "training.log"),
-            filemode="a",
-            format="%(asctime)s - %(levelname)s - %(message)s",
-            level=logging.INFO
-        )
+        # logging.basicConfig(
+        #     filename=os.path.join(ModelConfig.LOG_DIR.value, "training.log"),
+        #     filemode="a",
+        #     format="%(asctime)s - %(levelname)s - %(message)s",
+        #     level=logging.INFO,
+        #     force=True
+        # )
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         criterion = nn.CrossEntropyLoss()
@@ -400,7 +401,9 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
 
         for epoch in range(1, epochs+1):
 
-            print(f"Epoch: {epoch}/{epochs}")
+            msg = f"Epoch: {epoch}/{epochs}"
+            print(msg)
+            logging.info(msg)
             train_loss, train_acc = train_step(model, train_dataloader, device, criterion, acctorch, optimizer)
 
 
@@ -466,6 +469,13 @@ def train_model(num_classes, train_dataloader, valid_dataloader, test_dataloader
 
 
 def main():
+    logging.basicConfig(
+            filename=os.path.join(ModelConfig.LOG_DIR.value, "training.log"),
+            filemode="a",
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            level=logging.INFO,
+            force=True
+        )
     train_split, valid_split, test_split, labels = split_data()
     train_dataset, valid_dataset, test_dataset = custom_data(train_split, valid_split, test_split, labels)
     train_dataloader, valid_dataloader, test_dataloader = data_loaders(train_dataset, valid_dataset, test_dataset)
