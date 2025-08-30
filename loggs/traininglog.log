@@ -1,0 +1,80 @@
+2025-08-28 19:23:04,483 - INFO - Start DatasetSplitter...
+2025-08-28 19:23:09,253 - INFO - len all data: 43470 || len train: 19368 || len valid: 12069 || len test: 12033
+2025-08-28 19:23:09,274 - INFO - Start CustomDataset...
+2025-08-28 19:23:09,275 - INFO - Strat DataLoader...
+2025-08-28 19:23:09,276 - INFO - Length of train dataloader: 422 batches of 46
+2025-08-28 19:23:09,276 - INFO - Length of test dataloader: 262 batches of 46
+2025-08-28 19:23:09,277 - INFO - Length of valid dataloader: 263 batches of 46
+2025-08-28 19:23:10,785 - INFO - Start Training... 
+2025-08-28 19:23:10,785 - INFO - Epoch: 1/10
+2025-08-28 19:23:12,821 - INFO -     Batch:0/422 | train loss: 2.1100 | train accuracy: 8.70%
+2025-08-28 19:23:44,222 - INFO -     Batch:100/422 | train loss: 1.6437 | train accuracy: 24.84%
+2025-08-28 19:24:15,782 - INFO -     Batch:200/422 | train loss: 1.0947 | train accuracy: 41.61%
+2025-08-28 19:24:46,680 - INFO -     Batch:300/422 | train loss: 0.4282 | train accuracy: 52.74%
+2025-08-28 19:25:17,880 - INFO -     Batch:400/422 | train loss: 0.5516 | train accuracy: 59.59%
+2025-08-28 19:26:18,211 - INFO -     Train loss: 1.0626, acc: 60.5793 | Val loss: 0.9976, acc: 67.4538
+2025-08-28 19:26:18,533 - INFO - Epoch: 2/10
+2025-08-28 19:26:20,181 - INFO -     Batch:0/422 | train loss: 0.4989 | train accuracy: 89.13%
+2025-08-28 19:26:51,565 - INFO -     Batch:100/422 | train loss: 0.4360 | train accuracy: 85.79%
+2025-08-28 19:27:22,702 - INFO -     Batch:200/422 | train loss: 0.2448 | train accuracy: 87.29%
+2025-08-28 19:27:54,650 - INFO -     Batch:300/422 | train loss: 0.2864 | train accuracy: 88.47%
+2025-08-28 19:28:25,838 - INFO -     Batch:400/422 | train loss: 0.1648 | train accuracy: 89.52%
+2025-08-28 19:29:25,865 - INFO -     Train loss: 0.2989, acc: 89.6427 | Val loss: 1.1420, acc: 68.6718
+2025-08-28 19:29:26,186 - INFO - Epoch: 3/10
+2025-08-28 19:29:27,833 - INFO -     Batch:0/422 | train loss: 0.1225 | train accuracy: 95.65%
+2025-08-28 19:29:59,974 - INFO -     Batch:100/422 | train loss: 0.1665 | train accuracy: 93.65%
+2025-08-28 19:30:32,049 - INFO -     Batch:200/422 | train loss: 0.1018 | train accuracy: 94.48%
+2025-08-28 19:31:03,258 - INFO -     Batch:300/422 | train loss: 0.2449 | train accuracy: 94.87%
+2025-08-28 19:31:34,428 - INFO -     Batch:400/422 | train loss: 0.0905 | train accuracy: 95.20%
+2025-08-28 19:32:33,816 - INFO -     Train loss: 0.1428, acc: 95.1673 | Val loss: 1.2552, acc: 69.5501
+2025-08-28 19:32:34,012 - INFO - Epoch: 4/10
+2025-08-28 19:32:35,627 - INFO -     Batch:0/422 | train loss: 0.0939 | train accuracy: 97.83%
+2025-08-28 19:33:07,818 - INFO -     Batch:100/422 | train loss: 0.0281 | train accuracy: 97.42%
+2025-08-28 19:33:38,880 - INFO -     Batch:200/422 | train loss: 0.0561 | train accuracy: 97.00%
+2025-08-28 19:34:10,306 - INFO -     Batch:300/422 | train loss: 0.0870 | train accuracy: 97.11%
+2025-08-28 19:34:41,746 - INFO -     Batch:400/422 | train loss: 0.0968 | train accuracy: 97.11%
+2025-08-28 19:35:41,739 - INFO -     Train loss: 0.0902, acc: 97.0570 | Val loss: 1.3584, acc: 70.3289
+2025-08-28 19:35:42,062 - INFO - Epoch: 5/10
+2025-08-28 19:35:43,709 - INFO -     Batch:0/422 | train loss: 0.2065 | train accuracy: 93.48%
+2025-08-28 19:36:14,986 - INFO -     Batch:100/422 | train loss: 0.0612 | train accuracy: 96.79%
+2025-08-28 19:36:46,206 - INFO -     Batch:200/422 | train loss: 0.1040 | train accuracy: 97.33%
+2025-08-28 19:37:17,824 - INFO -     Batch:300/422 | train loss: 0.0818 | train accuracy: 97.28%
+2025-08-28 19:37:49,118 - INFO -     Batch:400/422 | train loss: 0.0569 | train accuracy: 97.48%
+2025-08-28 19:38:49,366 - INFO -     Train loss: 0.0761, acc: 97.5062 | Val loss: 1.4382, acc: 69.2435
+2025-08-28 19:38:50,144 - INFO - Epoch: 6/10
+2025-08-28 19:38:51,728 - INFO -     Batch:0/422 | train loss: 0.0382 | train accuracy: 100.00%
+2025-08-28 19:39:24,022 - INFO -     Batch:100/422 | train loss: 0.0779 | train accuracy: 98.39%
+2025-08-28 19:39:55,481 - INFO -     Batch:200/422 | train loss: 0.0058 | train accuracy: 98.59%
+2025-08-28 19:40:26,791 - INFO -     Batch:300/422 | train loss: 0.0024 | train accuracy: 98.81%
+2025-08-28 19:40:57,957 - INFO -     Batch:400/422 | train loss: 0.0035 | train accuracy: 98.90%
+2025-08-28 19:41:58,525 - INFO -     Train loss: 0.0361, acc: 98.9209 | Val loss: 1.3721, acc: 71.1989
+2025-08-28 19:41:58,873 - INFO - Epoch: 7/10
+2025-08-28 19:42:00,545 - INFO -     Batch:0/422 | train loss: 0.0219 | train accuracy: 100.00%
+2025-08-28 19:42:31,935 - INFO -     Batch:100/422 | train loss: 0.1444 | train accuracy: 99.18%
+2025-08-28 19:43:03,862 - INFO -     Batch:200/422 | train loss: 0.0262 | train accuracy: 99.28%
+2025-08-28 19:43:34,976 - INFO -     Batch:300/422 | train loss: 0.0029 | train accuracy: 99.28%
+2025-08-28 19:44:06,177 - INFO -     Batch:400/422 | train loss: 0.0109 | train accuracy: 99.29%
+2025-08-28 19:45:07,330 - INFO -     Train loss: 0.0246, acc: 99.3081 | Val loss: 1.3527, acc: 71.4227
+2025-08-28 19:45:07,668 - INFO - Epoch: 8/10
+2025-08-28 19:45:09,319 - INFO -     Batch:0/422 | train loss: 0.0040 | train accuracy: 100.00%
+2025-08-28 19:45:41,007 - INFO -     Batch:100/422 | train loss: 0.0106 | train accuracy: 99.42%
+2025-08-28 19:46:12,240 - INFO -     Batch:200/422 | train loss: 0.0626 | train accuracy: 99.41%
+2025-08-28 19:46:43,475 - INFO -     Batch:300/422 | train loss: 0.0651 | train accuracy: 99.38%
+2025-08-28 19:47:14,747 - INFO -     Batch:400/422 | train loss: 0.0017 | train accuracy: 99.43%
+2025-08-28 19:48:14,396 - INFO -     Train loss: 0.0184, acc: 99.4527 | Val loss: 1.4007, acc: 71.0167
+2025-08-28 19:48:14,400 - INFO - Epoch: 9/10
+2025-08-28 19:48:16,022 - INFO -     Batch:0/422 | train loss: 0.0028 | train accuracy: 100.00%
+2025-08-28 19:48:47,425 - INFO -     Batch:100/422 | train loss: 0.0200 | train accuracy: 99.35%
+2025-08-28 19:49:18,745 - INFO -     Batch:200/422 | train loss: 0.0501 | train accuracy: 99.47%
+2025-08-28 19:49:50,534 - INFO -     Batch:300/422 | train loss: 0.0071 | train accuracy: 99.52%
+2025-08-28 19:50:21,873 - INFO -     Batch:400/422 | train loss: 0.0774 | train accuracy: 99.54%
+2025-08-28 19:51:21,104 - INFO -     Train loss: 0.0164, acc: 99.5560 | Val loss: 1.4321, acc: 70.7515
+2025-08-28 19:51:21,107 - INFO - Epoch: 10/10
+2025-08-28 19:51:22,690 - INFO -     Batch:0/422 | train loss: 0.0020 | train accuracy: 100.00%
+2025-08-28 19:51:55,243 - INFO -     Batch:100/422 | train loss: 0.0028 | train accuracy: 99.53%
+2025-08-28 19:52:28,309 - INFO -     Batch:200/422 | train loss: 0.0051 | train accuracy: 99.52%
+2025-08-28 19:52:59,454 - INFO -     Batch:300/422 | train loss: 0.0028 | train accuracy: 99.55%
+2025-08-28 19:53:31,508 - INFO -     Batch:400/422 | train loss: 0.0086 | train accuracy: 99.55%
+2025-08-28 19:54:31,997 - INFO -     Train loss: 0.0218, acc: 99.5508 | Val loss: 1.4765, acc: 70.5527
+2025-08-28 19:54:32,466 - INFO - Train time on cuda: 1881.681 seconds
+2025-08-28 19:55:35,967 - INFO - Final Test Loss: 1.3605 | Test Accuracy: 73.46%
